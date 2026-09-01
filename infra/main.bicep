@@ -80,7 +80,7 @@ var rerankModelName = 'Cohere-rerank-v4.0-pro'
 var rerankModelVersion = '1'
 var postgresConnectionString = 'postgresql://${postgresAdminLogin}:${uriComponent(postgresAdminPassword)}@${postgresServerName}.postgres.database.azure.com:5432/${postgresDatabaseName}?sslmode=require'
 var llmBaseUrl = 'https://${llmAccountName}.openai.azure.com/openai/v1'
-var embeddingBaseUrl = 'https://${llmAccountName}.openai.azure.com/openai/deployments/${embeddingDeploymentName}'
+var embeddingBaseUrl = 'https://${llmAccountName}.openai.azure.com/openai/deployments/${embeddingDeploymentName}?api-version=2024-10-21'
 var rerankBaseUrl = 'https://${rerankAccountName}.services.ai.azure.com/providers/cohere/v2/rerank'
 var collectorBaseUrl = 'https://${collectorAppName}.azurewebsites.net'
 var tracesStreamName = 'Microsoft-OTel-Traces-Spans'
@@ -677,7 +677,7 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL'
-          value: embeddingDeploymentName
+          value: embeddingModelName
         }
         {
           name: 'HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL'
