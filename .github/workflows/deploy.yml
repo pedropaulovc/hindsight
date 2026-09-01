@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Sign in to Azure with workload identity
         uses: azure/login@v2
@@ -35,16 +37,16 @@ jobs:
       - name: Deploy infrastructure
         uses: azure/cli@v2
         env:
-          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
           HINDSIGHT_API_KEY: ${{ secrets.HINDSIGHT_API_KEY }}
           OTEL_RECEIVER_TOKEN: ${{ secrets.OTEL_RECEIVER_TOKEN }}
         with:
           inlineScript: |
             set -eu
+            # main.bicep provisions the subscription and resource group once.
+            # This scoped update keeps the workload identity limited to that group.
             az deployment group create \
               --resource-group rg-hindsight-wu2 \
-              --template-file infra/main.bicep \
+              --template-file infra/main-rg.bicep \
               --parameters \
-                postgresAdminPassword="$POSTGRES_ADMIN_PASSWORD" \
                 hindsightApiKey="$HINDSIGHT_API_KEY" \
                 otelReceiverToken="$OTEL_RECEIVER_TOKEN"
