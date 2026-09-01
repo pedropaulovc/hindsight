@@ -556,6 +556,7 @@ resource llmAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
     customSubDomainName: llmAccountName
     disableLocalAuth: false
     publicNetworkAccess: 'Enabled'
+    restore: true
   }
   tags: {
     application: 'hindsight'
@@ -612,6 +613,7 @@ resource rerankAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
     customSubDomainName: rerankAccountName
     disableLocalAuth: false
     publicNetworkAccess: 'Enabled'
+    restore: true
   }
   tags: {
     application: 'hindsight'
