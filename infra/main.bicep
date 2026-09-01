@@ -429,7 +429,7 @@ resource embeddingDeployment 'Microsoft.CognitiveServices/accounts/deployments@2
   parent: llmAccount
   name: embeddingDeploymentName
   sku: {
-    name: 'Standard'
+    name: 'GlobalStandard'
     capacity: 1
   }
   properties: {
