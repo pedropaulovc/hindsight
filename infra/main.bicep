@@ -8,6 +8,11 @@ param resourceGroupName string = 'rg-hindsight-wu2'
 
 @description('Azure region for Azure OpenAI. GPT-5.6-luna is not listed for westus2, so the default is westus3.')
 param aiLocation string = 'westus3'
+@description('Restore the soft-deleted Azure OpenAI account during recovery.')
+param restoreLlmAccount bool = false
+
+@description('Restore the soft-deleted Azure AI Services account during recovery.')
+param restoreRerankAccount bool = false
 @description('User-assigned identity used by GitHub Actions for Azure deployments.')
 param deploymentIdentityName string = 'id-hindsight-deploy-wu2'
 
@@ -59,6 +64,8 @@ module hindsightResources 'main-rg.bicep' = {
     hindsightApiKey: hindsightApiKey
     otelReceiverToken: otelReceiverToken
     postgresAdminPassword: postgresAdminPassword
+    restoreLlmAccount: restoreLlmAccount
+    restoreRerankAccount: restoreRerankAccount
     deploymentIdentityName: deploymentIdentityName
     otelIdentityName: otelIdentityName
     githubOwner: githubOwner

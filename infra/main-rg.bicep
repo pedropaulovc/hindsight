@@ -21,6 +21,11 @@ param llmAccountName string = 'cog-hindsight-wu2'
 
 @description('Azure AI Services account name used for reranking.')
 param rerankAccountName string = 'rerank-hindsight-wu2'
+@description('Restore the soft-deleted Azure OpenAI account during recovery.')
+param restoreLlmAccount bool = false
+
+@description('Restore the soft-deleted Azure AI Services account during recovery.')
+param restoreRerankAccount bool = false
 
 @description('Azure OpenAI deployment name for GPT-5.6-luna.')
 param llmDeploymentName string = 'gpt-5-6-luna'
@@ -556,6 +561,7 @@ resource llmAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
     customSubDomainName: llmAccountName
     disableLocalAuth: false
     publicNetworkAccess: 'Enabled'
+    restore: restoreLlmAccount
   }
   tags: {
     application: 'hindsight'
@@ -612,6 +618,7 @@ resource rerankAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
     customSubDomainName: rerankAccountName
     disableLocalAuth: false
     publicNetworkAccess: 'Enabled'
+    restore: restoreRerankAccount
   }
   tags: {
     application: 'hindsight'
