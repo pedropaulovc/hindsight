@@ -542,7 +542,7 @@ resource collectorApp 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: plan.id
     siteConfig: {
       alwaysOn: true
-      appCommandLine: 'sh -c \'echo "$OTEL_CONFIG_B64" | base64 -d > /tmp/otel-config.yaml && exec /otelcol-contrib --config=/tmp/otel-config.yaml\''
+      appCommandLine: '--config=env:OTEL_CONFIG'
       appSettings: [
         {
           name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
@@ -553,8 +553,8 @@ resource collectorApp 'Microsoft.Web/sites@2023-12-01' = {
           value: '4318'
         }
         {
-          name: 'OTEL_CONFIG_B64'
-          value: base64(collectorConfig)
+          name: 'OTEL_CONFIG'
+          value: collectorConfig
         }
         {
           name: 'OTEL_RECEIVER_TOKEN'
