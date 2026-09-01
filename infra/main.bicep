@@ -496,7 +496,7 @@ processors:
   batch:
 
 extensions:
-  azure_auth:
+  azureauth:
     use_default: true
     scopes:
       - https://monitor.azure.com/.default
@@ -507,11 +507,11 @@ exporters:
   otlphttp/azuremonitor:
     traces_endpoint: $${azureMonitorTracesEndpoint}
     auth:
-      authenticator: azure_auth
+      authenticator: azureauth
 
 service:
   extensions:
-    - azure_auth
+    - azureauth
     - bearertokenauth/server
   pipelines:
     traces:
