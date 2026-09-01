@@ -106,7 +106,7 @@ var virtualNetworkName = 'vnet-hindsight-wu2'
 var appServiceSubnetName = 'snet-appservice'
 var postgresSubnetName = 'snet-postgres'
 var postgresPrivateDnsZoneName = 'private.postgres.database.azure.com'
-var postgresServerFqdn = '${postgresServerName}.${postgresPrivateDnsZoneName}'
+var postgresServerFqdn = '${postgresServerName}.postgres.database.azure.com'
 var postgresConnectionString = 'postgresql://${postgresAdminLogin}:${uriComponent(postgresAdminPassword)}@${postgresServerFqdn}:5432/${postgresDatabaseName}?sslmode=require'
 // Azure's OTLP ingestion route maps to the three Microsoft-OTel trace data sources above.
 var tracesStreamName = 'Microsoft-OTLP-Traces'
