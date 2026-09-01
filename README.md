@@ -22,12 +22,14 @@ export HINDSIGHT_CP_DATAPLANE_API_KEY='your-api-key'
 ./scripts/start-control-plane.sh
 ```
 
+When `HINDSIGHT_CP_DATAPLANE_API_URL` points to another deployment, set `HINDSIGHT_CP_DATAPLANE_API_KEY` explicitly. The launcher never sends the production key to an overridden URL.
+
 To protect the local UI with a separate access key:
 
 ```bash
 HINDSIGHT_CP_ACCESS_KEY='your-control-plane-key' ./scripts/start-control-plane.sh
 ```
 
-The launcher uses `@vectorize-io/hindsight-control-plane@0.9.2`. Set `HINDSIGHT_CP_HOSTNAME` or `HINDSIGHT_CP_PORT` to override its local bind address or port.
+The launcher uses `@vectorize-io/hindsight-control-plane@0.9.2`. It resolves the package before loading either key. Set `HINDSIGHT_CP_HOSTNAME` or `HINDSIGHT_CP_PORT` to override its local bind address or port.
 
 The deployed API endpoint is [https://app-hindsight-wu2.azurewebsites.net](https://app-hindsight-wu2.azurewebsites.net). It does not host a public Control Plane page; a hosted UI would require a separate Control Plane service.
