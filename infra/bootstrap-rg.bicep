@@ -11,6 +11,11 @@ param githubOwner string = 'pedropaulovc'
 
 @description('GitHub repository name.')
 param githubRepository string = 'hindsight'
+@description('Immutable GitHub owner ID used by the repository subject claim.')
+param githubOwnerId string = '577970'
+
+@description('Immutable GitHub repository ID used by the repository subject claim.')
+param githubRepositoryId string = '1353841016'
 
 @description('GitHub environment name used by the deployment workflow.')
 param githubEnvironment string = 'prod'
@@ -45,7 +50,7 @@ resource githubFederatedCredential 'Microsoft.ManagedIdentity/userAssignedIdenti
       'api://AzureADTokenExchange'
     ]
     issuer: 'https://token.actions.githubusercontent.com'
-    subject: 'repo:${githubOwner}/${githubRepository}:environment:${githubEnvironment}'
+    subject: 'repo:${githubOwner}@${githubOwnerId}/${githubRepository}@${githubRepositoryId}:environment:${githubEnvironment}'
   }
 }
 
