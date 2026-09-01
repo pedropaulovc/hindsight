@@ -37,6 +37,19 @@ param planName string = 'plan-hindsight-wu2'
 @description('Hindsight API App Service name.')
 param appName string = 'app-hindsight-wu2'
 
+@description('PostgreSQL Flexible Server name.')
+param postgresServerName string = 'pg-hindsight-wu2'
+
+@description('PostgreSQL database name used by Hindsight.')
+param postgresDatabaseName string = 'hindsight'
+
+@description('PostgreSQL Flexible Server administrator login.')
+param postgresAdminLogin string = 'hindsightadmin'
+
+@secure()
+@description('PostgreSQL Flexible Server administrator password.')
+param postgresAdminPassword string
+
 @description('OTLP collector App Service name.')
 param collectorAppName string = 'otel-hindsight-wu2'
 
@@ -89,6 +102,12 @@ var llmBaseUrl = 'https://${llmAccountName}.openai.azure.com/openai/v1'
 var embeddingBaseUrl = 'https://${llmAccountName}.openai.azure.com/openai/deployments/${embeddingDeploymentName}?api-version=2024-10-21'
 var rerankBaseUrl = 'https://${rerankAccountName}.services.ai.azure.com/providers/cohere/v2/rerank'
 var collectorBaseUrl = 'https://${collectorAppName}.azurewebsites.net'
+var virtualNetworkName = 'vnet-hindsight-wu2'
+var appServiceSubnetName = 'snet-appservice'
+var postgresSubnetName = 'snet-postgres'
+var postgresPrivateDnsZoneName = 'private.postgres.database.azure.com'
+var postgresServerFqdn = '${postgresServerName}.${postgresPrivateDnsZoneName}'
+var postgresConnectionString = 'postgresql://${postgresAdminLogin}:${postgresAdminPassword}@${postgresServerFqdn}:5432/${postgresDatabaseName}?sslmode=require'
 // Azure's OTLP ingestion route maps to the three Microsoft-OTel trace data sources above.
 var tracesStreamName = 'Microsoft-OTLP-Traces'
 
@@ -156,6 +175,75 @@ resource deploymentIdentityOperatorAssignment 'Microsoft.Authorization/roleAssig
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', managedIdentityOperatorRoleDefinitionId)
   }
 }
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
+  name: virtualNetworkName
+  location: location
+  properties: {
+    addressSpace: {
+      addressPrefixes: [
+        '10.20.0.0/16'
+      ]
+    }
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+  }
+}
+
+resource appServiceSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = {
+  parent: virtualNetwork
+  name: appServiceSubnetName
+  properties: {
+    addressPrefix: '10.20.0.0/26'
+    delegations: [
+      {
+        name: 'appService'
+        properties: {
+          serviceName: 'Microsoft.Web/serverFarms'
+        }
+      }
+    ]
+  }
+}
+
+resource postgresSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' = {
+  parent: virtualNetwork
+  name: postgresSubnetName
+  properties: {
+    addressPrefix: '10.20.1.0/28'
+    delegations: [
+      {
+        name: 'postgres'
+        properties: {
+          serviceName: 'Microsoft.DBforPostgreSQL/flexibleServers'
+        }
+      }
+    ]
+  }
+}
+
+resource postgresPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
+  name: postgresPrivateDnsZoneName
+  location: 'global'
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+  }
+}
+
+resource postgresPrivateDnsLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
+  parent: postgresPrivateDnsZone
+  name: virtualNetworkName
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: virtualNetwork.id
+    }
+  }
+}
+
 
 
 resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
@@ -177,6 +265,54 @@ resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
   tags: {
     application: 'hindsight'
     managedBy: 'bicep'
+  }
+}
+
+resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
+  name: postgresServerName
+  location: location
+  sku: {
+    name: 'Standard_B1ms'
+    tier: 'Burstable'
+  }
+  dependsOn: [
+    postgresPrivateDnsLink
+  ]
+  properties: {
+    administratorLogin: postgresAdminLogin
+    administratorLoginPassword: postgresAdminPassword
+    backup: {
+      backupRetentionDays: 7
+      geoRedundantBackup: 'Disabled'
+    }
+    highAvailability: {
+      mode: 'Disabled'
+    }
+    network: {
+      delegatedSubnetResourceId: postgresSubnet.id
+      privateDnsZoneArmResourceId: postgresPrivateDnsZone.id
+      publicNetworkAccess: 'Disabled'
+    }
+    storage: {
+      autoGrow: 'Disabled'
+      storageSizeGB: 32
+      type: 'Premium_LRS'
+    }
+    version: '16'
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+    purpose: 'database'
+  }
+}
+
+resource postgresDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  parent: postgresServer
+  name: postgresDatabaseName
+  properties: {
+    charset: 'UTF8'
+    collation: 'en_US.UTF8'
   }
 }
 
@@ -609,6 +745,9 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
   identity: {
     type: 'None'
   }
+  dependsOn: [
+    postgresDatabase
+  ]
   properties: {
     httpsOnly: true
     publicNetworkAccess: 'Enabled'
@@ -616,13 +755,12 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
     clientCertEnabled: false
     enabled: true
     serverFarmId: plan.id
+    virtualNetworkSubnetId: appServiceSubnet.id
     siteConfig: {
       alwaysOn: true
       appSettings: [
-        // pg0 is intentionally embedded per deployment requirements.
-        // Local container storage is ephemeral; data is lost on recycle, deployment,
-        // maintenance, or instance move. Persistent App Service storage is a network
-        // share and breaks pg0 data-directory ownership.
+        // The managed PostgreSQL server owns the database; local App Service
+        // storage is disabled because no application data belongs on the container.
         {
           name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
           value: 'false'
@@ -649,7 +787,7 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'HINDSIGHT_API_DATABASE_URL'
-          value: 'pg0'
+          value: postgresConnectionString
         }
         {
           name: 'HINDSIGHT_API_DB_POOL_MIN_SIZE'
@@ -779,3 +917,4 @@ output dataCollectionRuleImmutableId string = dataCollectionRuleImmutableId
 output llmEndpoint string = llmBaseUrl
 output rerankEndpoint string = rerankBaseUrl
 output embeddingEndpoint string = embeddingBaseUrl
+output postgresServerFqdn string = postgresServerFqdn

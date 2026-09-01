@@ -39,6 +39,7 @@ jobs:
         env:
           HINDSIGHT_API_KEY: ${{ secrets.HINDSIGHT_API_KEY }}
           OTEL_RECEIVER_TOKEN: ${{ secrets.OTEL_RECEIVER_TOKEN }}
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
         with:
           inlineScript: |
             set -eu
@@ -49,4 +50,5 @@ jobs:
               --template-file infra/main-rg.bicep \
               --parameters \
                 hindsightApiKey="$HINDSIGHT_API_KEY" \
-                otelReceiverToken="$OTEL_RECEIVER_TOKEN"
+                otelReceiverToken="$OTEL_RECEIVER_TOKEN" \
+                postgresAdminPassword="$POSTGRES_ADMIN_PASSWORD"

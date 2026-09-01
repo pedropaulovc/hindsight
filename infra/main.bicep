@@ -37,6 +37,10 @@ param hindsightApiKey string
 @description('Bearer token accepted by the private OTLP collector endpoint.')
 param otelReceiverToken string
 
+@secure()
+@description('PostgreSQL Flexible Server administrator password.')
+param postgresAdminPassword string
+
 resource deploymentResourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: resourceGroupName
   location: location
@@ -54,6 +58,7 @@ module hindsightResources 'main-rg.bicep' = {
     aiLocation: aiLocation
     hindsightApiKey: hindsightApiKey
     otelReceiverToken: otelReceiverToken
+    postgresAdminPassword: postgresAdminPassword
     deploymentIdentityName: deploymentIdentityName
     otelIdentityName: otelIdentityName
     githubOwner: githubOwner
@@ -75,3 +80,4 @@ output dataCollectionRuleImmutableId string = hindsightResources.outputs.dataCol
 output llmEndpoint string = hindsightResources.outputs.llmEndpoint
 output rerankEndpoint string = hindsightResources.outputs.rerankEndpoint
 output embeddingEndpoint string = hindsightResources.outputs.embeddingEndpoint
+output postgresServerFqdn string = hindsightResources.outputs.postgresServerFqdn
