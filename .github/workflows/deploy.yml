@@ -1,0 +1,50 @@
+name: Deploy Hindsight
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: hindsight-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Azure resources
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+      url: https://app-hindsight-wu2.azurewebsites.net
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Sign in to Azure with workload identity
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy infrastructure
+        uses: azure/cli@v2
+        env:
+          POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+          HINDSIGHT_API_KEY: ${{ secrets.HINDSIGHT_API_KEY }}
+          OTEL_RECEIVER_TOKEN: ${{ secrets.OTEL_RECEIVER_TOKEN }}
+        with:
+          inlineScript: |
+            set -eu
+            az deployment group create \
+              --resource-group rg-hindsight-wu2 \
+              --template-file infra/main.bicep \
+              --parameters \
+                postgresAdminPassword="$POSTGRES_ADMIN_PASSWORD" \
+                hindsightApiKey="$HINDSIGHT_API_KEY" \
+                otelReceiverToken="$OTEL_RECEIVER_TOKEN"
