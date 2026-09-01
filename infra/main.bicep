@@ -406,6 +406,9 @@ resource llmAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
 resource llmDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: llmAccount
   name: llmDeploymentName
+  dependsOn: [
+    embeddingDeployment
+  ]
   sku: {
     name: 'GlobalStandard'
     capacity: 1
