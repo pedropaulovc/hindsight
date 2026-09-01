@@ -312,7 +312,7 @@ resource postgresExtensions 'Microsoft.DBforPostgreSQL/flexibleServers/configura
   name: 'azure.extensions'
   properties: {
     source: 'user-override'
-    value: 'vector'
+    value: 'vector,pg_trgm'
   }
 }
 
