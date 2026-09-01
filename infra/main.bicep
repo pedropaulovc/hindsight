@@ -66,8 +66,6 @@ param dataCollectionEndpointName string = 'dce-hindsight-wu2'
 @description('Data Collection Rule name.')
 param dataCollectionRuleName string = 'dcr-hindsight-wu2'
 
-@description('Existing deployment identity created by infra/bootstrap.bicep.')
-param deploymentIdentityName string = 'id-hindsight-deploy-wu2'
 
 @description('Existing OTLP collector identity created by infra/bootstrap.bicep.')
 param otelIdentityName string = 'id-hindsight-otel-wu2'
@@ -87,9 +85,6 @@ var rerankBaseUrl = 'https://${rerankAccountName}.services.ai.azure.com/provider
 var collectorBaseUrl = 'https://${collectorAppName}.azurewebsites.net'
 var tracesStreamName = 'Microsoft-OTel-Traces-Spans'
 
-resource deploymentIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
-  name: deploymentIdentityName
-}
 
 resource otelIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
   name: otelIdentityName
@@ -592,12 +587,6 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
   name: appName
   location: location
   kind: 'app,linux,container'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${deploymentIdentity.id}': {}
-    }
-  }
   properties: {
     httpsOnly: true
     publicNetworkAccess: 'Enabled'
