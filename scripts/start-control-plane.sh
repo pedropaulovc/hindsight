@@ -84,7 +84,7 @@ if [[ -z "${HINDSIGHT_CP_DATAPLANE_API_KEY:-}" ]]; then
 fi
 
 if [[ -n "$ui_access_key_from_env" ]]; then
-  HINDSIGHT_CP_ACCESS_KEY="$ui_access_key_from_env"
+  export HINDSIGHT_CP_ACCESS_KEY="$ui_access_key_from_env"
 fi
 unset ui_access_key_from_env
 
