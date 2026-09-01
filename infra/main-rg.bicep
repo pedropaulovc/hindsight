@@ -307,9 +307,21 @@ resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' =
   }
 }
 
+resource postgresExtensions 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
+  parent: postgresServer
+  name: 'azure.extensions'
+  properties: {
+    source: 'user-override'
+    value: 'vector'
+  }
+}
+
 resource postgresDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
   parent: postgresServer
   name: postgresDatabaseName
+  dependsOn: [
+    postgresExtensions
+  ]
   properties: {
     charset: 'UTF8'
     collation: 'en_US.UTF8'
