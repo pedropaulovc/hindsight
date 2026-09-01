@@ -590,6 +590,9 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
   name: appName
   location: location
   kind: 'app,linux,container'
+  identity: {
+    type: 'None'
+  }
   properties: {
     httpsOnly: true
     publicNetworkAccess: 'Enabled'
