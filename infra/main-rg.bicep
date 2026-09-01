@@ -619,7 +619,10 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
     siteConfig: {
       alwaysOn: true
       appSettings: [
-        // pg0 needs a local filesystem; App Service persistent storage is a network share.
+        // pg0 is intentionally embedded per deployment requirements.
+        // Local container storage is ephemeral; data is lost on recycle, deployment,
+        // maintenance, or instance move. Persistent App Service storage is a network
+        // share and breaks pg0 data-directory ownership.
         {
           name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
           value: 'false'
