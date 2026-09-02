@@ -102,3 +102,5 @@ output collectorAppDiagnosticsId string = hindsightResources.outputs.collectorAp
 output rateLimitActionGroupId string = hindsightResources.outputs.rateLimitActionGroupId
 output llmRateLimitAlertId string = hindsightResources.outputs.llmRateLimitAlertId
 output rerankRateLimitAlertId string = hindsightResources.outputs.rerankRateLimitAlertId
+output llmGenericErrorAlertId string = hindsightResources.outputs.llmGenericErrorAlertId
+output rerankGenericErrorAlertId string = hindsightResources.outputs.rerankGenericErrorAlertId

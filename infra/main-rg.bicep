@@ -1134,6 +1134,108 @@ resource rerankRateLimitAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   }
 }
 
+resource llmGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-hindsight-llm-errors'
+  location: 'global'
+  properties: {
+    description: 'Alerts when an Azure OpenAI model request returns a non-success status other than HTTP 429.'
+    severity: 2
+    enabled: true
+    scopes: [
+      llmAccount.id
+    ]
+    evaluationFrequency: 'PT1M'
+    windowSize: 'PT5M'
+    autoMitigate: true
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'AzureGenericModelErrors'
+          criterionType: 'StaticThresholdCriterion'
+          metricName: 'AzureOpenAIRequests'
+          metricNamespace: 'Microsoft.CognitiveServices/accounts'
+          operator: 'GreaterThan'
+          threshold: 0
+          timeAggregation: 'Total'
+          skipMetricValidation: false
+          dimensions: [
+            {
+              name: 'StatusCode'
+              operator: 'Exclude'
+              values: [
+                '200'
+                '429'
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    actions: [
+      {
+        actionGroupId: rateLimitActionGroup.id
+      }
+    ]
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+    purpose: 'error-alerting'
+  }
+}
+
+resource rerankGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-hindsight-rerank-errors'
+  location: 'global'
+  properties: {
+    description: 'Alerts when an Azure AI Services reranker request returns a non-success status other than HTTP 429.'
+    severity: 2
+    enabled: true
+    scopes: [
+      rerankAccount.id
+    ]
+    evaluationFrequency: 'PT1M'
+    windowSize: 'PT5M'
+    autoMitigate: true
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'RerankGenericModelErrors'
+          criterionType: 'StaticThresholdCriterion'
+          metricName: 'ModelRequests'
+          metricNamespace: 'Microsoft.CognitiveServices/accounts'
+          operator: 'GreaterThan'
+          threshold: 0
+          timeAggregation: 'Total'
+          skipMetricValidation: false
+          dimensions: [
+            {
+              name: 'StatusCode'
+              operator: 'Exclude'
+              values: [
+                '200'
+                '429'
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    actions: [
+      {
+        actionGroupId: rateLimitActionGroup.id
+      }
+    ]
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+    purpose: 'error-alerting'
+  }
+}
+
 output apiUrl string = 'https://${apiHostname}'
 output apiHostname string = apiHostname
 output apiHostnameCnameTarget string = '${appName}.azurewebsites.net'
@@ -1153,3 +1255,5 @@ output collectorAppDiagnosticsId string = collectorAppDiagnostics.id
 output rateLimitActionGroupId string = rateLimitActionGroup.id
 output llmRateLimitAlertId string = llmRateLimitAlert.id
 output rerankRateLimitAlertId string = rerankRateLimitAlert.id
+output llmGenericErrorAlertId string = llmGenericErrorAlert.id
+output rerankGenericErrorAlertId string = rerankGenericErrorAlert.id
