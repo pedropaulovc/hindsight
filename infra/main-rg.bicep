@@ -828,7 +828,7 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'HINDSIGHT_API_LLM_MODEL'
-          value: llmModelName
+          value: llmDeploymentName
         }
         {
           name: 'HINDSIGHT_API_LLM_BASE_URL'
