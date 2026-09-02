@@ -29,6 +29,9 @@ param restoreRerankAccount bool = false
 
 @description('Azure OpenAI deployment name for GPT-5.6-luna.')
 param llmDeploymentName string = 'gpt-5-6-luna'
+@description('GlobalStandard quota units allocated to the GPT-5.6-luna deployment. Each unit provides 1,000 TPM.')
+param llmDeploymentCapacity int = 1000
+
 
 @description('Azure OpenAI deployment name for text-embedding-3-small.')
 param embeddingDeploymentName string = 'embedding-3-small'
@@ -580,7 +583,7 @@ resource llmDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10
   ]
   sku: {
     name: 'GlobalStandard'
-    capacity: 1
+    capacity: llmDeploymentCapacity
   }
   properties: {
     model: {
