@@ -45,6 +45,8 @@ param hindsightApiKey string
 param otelReceiverToken string
 @description('Email address that receives Azure Monitor 429 alerts.')
 param rateLimitAlertEmail string = 'pedro@vezza.com.br'
+@description('GlobalStandard quota units allocated to text-embedding-3-small.')
+param embeddingDeploymentCapacity int = 10
 
 @secure()
 @description('PostgreSQL Flexible Server administrator password.')
@@ -69,6 +71,7 @@ module hindsightResources 'main-rg.bicep' = {
     apiHostname: apiHostname
     otelReceiverToken: otelReceiverToken
     rateLimitAlertEmail: rateLimitAlertEmail
+    embeddingDeploymentCapacity: embeddingDeploymentCapacity
     postgresAdminPassword: postgresAdminPassword
     restoreLlmAccount: restoreLlmAccount
     restoreRerankAccount: restoreRerankAccount
