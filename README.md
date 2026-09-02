@@ -38,7 +38,7 @@ The deployed API endpoint is [https://hindsight.vza.net](https://hindsight.vza.n
 
 The base Bicep deployment creates the App Service and exposes `apiHostnameVerificationId`. The hostname binding is a separate deployment because App Service provides that verification ID only after the app exists.
 
-When DNS is already configured, the GitHub Actions deployment runs both phases. For a first bootstrap, deploy the base infrastructure, publish the DNS records, then deploy `infra/hostname-binding.bicep`.
+When DNS is already configured, the GitHub Actions deployment runs the base deployment, hostname binding, and TLS phases. For a first bootstrap, deploy the base infrastructure, publish the DNS records, then deploy `infra/hostname-binding.bicep` and `infra/hostname-tls.bicep` in order.
 
 | Record | Name | Value |
 | --- | --- | --- |
@@ -56,4 +56,16 @@ az deployment group create \
     apiHostname=hindsight.vza.net
 ```
 
-The binding maps the hostname but does not provision a custom-domain certificate; direct HTTPS traffic requires an App Service certificate binding or a TLS-terminating proxy with a valid origin configuration.
+The TLS phase creates a free App Service managed certificate and binds it with SNI:
+
+```bash
+az deployment group create \
+  --resource-group rg-hindsight-wu2 \
+  --template-file infra/hostname-tls.bicep \
+  --parameters \
+    appName=app-hindsight-wu2 \
+    planName=plan-hindsight-wu2 \
+    apiHostname=hindsight.vza.net
+```
+
+Wait for the managed certificate deployment to finish before using HTTPS. The certificate requires the custom hostname's CNAME to point directly to `app-hindsight-wu2.azurewebsites.net`.

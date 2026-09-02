@@ -64,3 +64,16 @@ jobs:
               --parameters \
                 appName=app-hindsight-wu2 \
                 apiHostname=hindsight.vza.net
+
+      - name: Secure custom API hostname
+        uses: azure/cli@9f7ce6f37c31b777ec6c6b6d1dfe7db79f497956 # v2.2.0
+        with:
+          inlineScript: |
+            set -eu
+            az deployment group create \
+              --resource-group rg-hindsight-wu2 \
+              --template-file infra/hostname-tls.bicep \
+              --parameters \
+                appName=app-hindsight-wu2 \
+                planName=plan-hindsight-wu2 \
+                apiHostname=hindsight.vza.net
