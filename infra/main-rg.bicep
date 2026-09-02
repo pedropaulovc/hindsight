@@ -14,6 +14,8 @@ param hindsightApiKey string
 @secure()
 @description('Bearer token accepted by the private OTLP collector endpoint.')
 param otelReceiverToken string
+@description('Email address that receives Azure Monitor 429 alerts.')
+param rateLimitAlertEmail string = 'pedro@vezza.com.br'
 
 
 @description('Azure OpenAI account name.')
@@ -29,6 +31,9 @@ param restoreRerankAccount bool = false
 
 @description('Azure OpenAI deployment name for GPT-5.6-luna.')
 param llmDeploymentName string = 'gpt-5-6-luna'
+@description('GlobalStandard quota units allocated to the GPT-5.6-luna deployment. Each unit provides 1,000 TPM and 1 RPM; 1,000 units provide 1,000,000 TPM and 1,000 RPM.')
+param llmDeploymentCapacity int = 1000
+
 
 @description('Azure OpenAI deployment name for text-embedding-3-small.')
 param embeddingDeploymentName string = 'embedding-3-small'
@@ -115,7 +120,8 @@ var postgresSubnetName = 'snet-postgres'
 var postgresPrivateDnsZoneName = 'private.postgres.database.azure.com'
 var postgresServerFqdn = '${postgresServerName}.postgres.database.azure.com'
 var postgresConnectionString = 'postgresql://${postgresAdminLogin}:${uriComponent(postgresAdminPassword)}@${postgresServerFqdn}:5432/${postgresDatabaseName}?sslmode=require'
-// Azure's OTLP ingestion route maps to the three Microsoft-OTel trace data sources above.
+// Azure's OTLP ingestion routes logs and traces to the DCR streams below.
+var logsStreamName = 'Microsoft-OTLP-Logs'
 var tracesStreamName = 'Microsoft-OTLP-Traces'
 
 
@@ -390,7 +396,7 @@ resource dataCollectionEndpoint 'Microsoft.Insights/dataCollectionEndpoints@2024
   name: dataCollectionEndpointName
   location: location
   properties: {
-    description: 'Data Collection Endpoint for Hindsight OpenTelemetry traces.'
+    description: 'Data Collection Endpoint for Hindsight OpenTelemetry telemetry.'
     networkAcls: {
       publicNetworkAccess: 'Enabled'
     }
@@ -406,7 +412,7 @@ resource dataCollectionRule 'Microsoft.Insights/dataCollectionRules@2024-03-11' 
   name: dataCollectionRuleName
   location: location
   properties: {
-    description: 'Direct OTLP trace ingestion for Hindsight through an OpenTelemetry Collector.'
+    description: 'Direct OTLP telemetry ingestion for Hindsight through an OpenTelemetry Collector.'
     dataCollectionEndpointId: dataCollectionEndpoint.id
     references: {
       applicationInsights: [
@@ -580,7 +586,7 @@ resource llmDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10
   ]
   sku: {
     name: 'GlobalStandard'
-    capacity: 1
+    capacity: llmDeploymentCapacity
   }
   properties: {
     model: {
@@ -652,6 +658,7 @@ var applicationInsightsConnectionString = applicationInsights.properties.Connect
 var dataCollectionEndpointUrl = dataCollectionEndpoint.properties.logsIngestion.endpoint
 var dataCollectionRuleImmutableId = dataCollectionRule.properties.immutableId
 var azureMonitorTracesEndpoint = '${dataCollectionEndpointUrl}/datacollectionRules/${dataCollectionRuleImmutableId}/streams/${tracesStreamName}/otlp/v1/traces'
+var azureMonitorLogsEndpoint = '${dataCollectionEndpointUrl}/datacollectionRules/${dataCollectionRuleImmutableId}/streams/${logsStreamName}/otlp/v1/logs'
 
 var collectorConfig = $$'''
 receivers:
@@ -676,6 +683,7 @@ extensions:
 exporters:
   otlphttp/azuremonitor:
     traces_endpoint: $${azureMonitorTracesEndpoint}
+    logs_endpoint: $${azureMonitorLogsEndpoint}
     auth:
       authenticator: azureauth
 
@@ -685,6 +693,13 @@ service:
     - bearertokenauth/server
   pipelines:
     traces:
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - otlphttp/azuremonitor
+    logs:
       receivers:
         - otlp
       processors:
@@ -843,6 +858,26 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
           value: 'none'
         }
         {
+          name: 'HINDSIGHT_API_WORKER_ID'
+          value: 'hindsight-local'
+        }
+        {
+          name: 'HINDSIGHT_API_AUDIT_LOG_ENABLED'
+          value: 'true'
+        }
+        {
+          name: 'HINDSIGHT_API_CONSOLIDATION_LLM_TIMEOUT'
+          value: '1200'
+        }
+        {
+          name: 'HINDSIGHT_API_REFLECT_LLM_TIMEOUT'
+          value: '1200'
+        }
+        {
+          name: 'HINDSIGHT_API_REFLECT_WALL_TIMEOUT'
+          value: '1200'
+        }
+        {
           name: 'HINDSIGHT_API_EMBEDDINGS_PROVIDER'
           value: 'openai'
         }
@@ -928,6 +963,279 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
+resource hindsightAppDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'hindsight-app-to-log-analytics'
+  scope: hindsightApp
+  properties: {
+    logAnalyticsDestinationType: 'Dedicated'
+    workspaceId: logAnalytics.id
+    logs: [
+      {
+        category: 'AppServiceConsoleLogs'
+        enabled: true
+      }
+      {
+        category: 'AppServiceAppLogs'
+        enabled: true
+      }
+      {
+        category: 'AppServiceHTTPLogs'
+        enabled: true
+      }
+      {
+        category: 'AppServicePlatformLogs'
+        enabled: true
+      }
+    ]
+  }
+}
+
+resource collectorAppDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'otel-collector-to-log-analytics'
+  scope: collectorApp
+  properties: {
+    logAnalyticsDestinationType: 'Dedicated'
+    workspaceId: logAnalytics.id
+    logs: [
+      {
+        category: 'AppServiceConsoleLogs'
+        enabled: true
+      }
+      {
+        category: 'AppServiceAppLogs'
+        enabled: true
+      }
+      {
+        category: 'AppServicePlatformLogs'
+        enabled: true
+      }
+    ]
+  }
+}
+
+resource rateLimitActionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
+  name: 'ag-hindsight-429'
+  location: 'global'
+  properties: {
+    enabled: true
+    groupShortName: 'hindsight429'
+    emailReceivers: [
+      {
+        name: 'Pedro'
+        emailAddress: rateLimitAlertEmail
+        useCommonAlertSchema: true
+      }
+    ]
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+    purpose: 'rate-limit-alerting'
+  }
+}
+
+resource llmRateLimitAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-hindsight-llm-429'
+  location: 'global'
+  properties: {
+    description: 'Alerts when an Azure OpenAI model request returns HTTP 429.'
+    severity: 2
+    enabled: true
+    scopes: [
+      llmAccount.id
+    ]
+    evaluationFrequency: 'PT1M'
+    windowSize: 'PT5M'
+    autoMitigate: true
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'AzureModelRequests429'
+          criterionType: 'StaticThresholdCriterion'
+          metricName: 'AzureOpenAIRequests'
+          metricNamespace: 'Microsoft.CognitiveServices/accounts'
+          operator: 'GreaterThan'
+          threshold: 0
+          timeAggregation: 'Total'
+          skipMetricValidation: false
+          dimensions: [
+            {
+              name: 'StatusCode'
+              operator: 'Include'
+              values: [
+                '429'
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    actions: [
+      {
+        actionGroupId: rateLimitActionGroup.id
+      }
+    ]
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+    purpose: 'rate-limit-alerting'
+  }
+}
+
+resource rerankRateLimitAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-hindsight-rerank-429'
+  location: 'global'
+  properties: {
+    description: 'Alerts when an Azure AI Services reranker request returns HTTP 429.'
+    severity: 2
+    enabled: true
+    scopes: [
+      rerankAccount.id
+    ]
+    evaluationFrequency: 'PT1M'
+    windowSize: 'PT5M'
+    autoMitigate: true
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'RerankModelRequests429'
+          criterionType: 'StaticThresholdCriterion'
+          metricName: 'ModelRequests'
+          metricNamespace: 'Microsoft.CognitiveServices/accounts'
+          operator: 'GreaterThan'
+          threshold: 0
+          timeAggregation: 'Total'
+          skipMetricValidation: false
+          dimensions: [
+            {
+              name: 'StatusCode'
+              operator: 'Include'
+              values: [
+                '429'
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    actions: [
+      {
+        actionGroupId: rateLimitActionGroup.id
+      }
+    ]
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+    purpose: 'rate-limit-alerting'
+  }
+}
+
+resource llmGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-hindsight-llm-errors'
+  location: 'global'
+  properties: {
+    description: 'Alerts when an Azure OpenAI model request returns a non-success status other than HTTP 429.'
+    severity: 2
+    enabled: true
+    scopes: [
+      llmAccount.id
+    ]
+    evaluationFrequency: 'PT1M'
+    windowSize: 'PT5M'
+    autoMitigate: true
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'AzureGenericModelErrors'
+          criterionType: 'StaticThresholdCriterion'
+          metricName: 'AzureOpenAIRequests'
+          metricNamespace: 'Microsoft.CognitiveServices/accounts'
+          operator: 'GreaterThan'
+          threshold: 0
+          timeAggregation: 'Total'
+          skipMetricValidation: false
+          dimensions: [
+            {
+              name: 'StatusCode'
+              operator: 'Exclude'
+              values: [
+                '200'
+                '429'
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    actions: [
+      {
+        actionGroupId: rateLimitActionGroup.id
+      }
+    ]
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+    purpose: 'error-alerting'
+  }
+}
+
+resource rerankGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
+  name: 'alert-hindsight-rerank-errors'
+  location: 'global'
+  properties: {
+    description: 'Alerts when an Azure AI Services reranker request returns a non-success status other than HTTP 429.'
+    severity: 2
+    enabled: true
+    scopes: [
+      rerankAccount.id
+    ]
+    evaluationFrequency: 'PT1M'
+    windowSize: 'PT5M'
+    autoMitigate: true
+    criteria: {
+      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
+      allOf: [
+        {
+          name: 'RerankGenericModelErrors'
+          criterionType: 'StaticThresholdCriterion'
+          metricName: 'ModelRequests'
+          metricNamespace: 'Microsoft.CognitiveServices/accounts'
+          operator: 'GreaterThan'
+          threshold: 0
+          timeAggregation: 'Total'
+          skipMetricValidation: false
+          dimensions: [
+            {
+              name: 'StatusCode'
+              operator: 'Exclude'
+              values: [
+                '200'
+                '429'
+              ]
+            }
+          ]
+        }
+      ]
+    }
+    actions: [
+      {
+        actionGroupId: rateLimitActionGroup.id
+      }
+    ]
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+    purpose: 'error-alerting'
+  }
+}
+
 output apiUrl string = 'https://${apiHostname}'
 output apiHostname string = apiHostname
 output apiHostnameCnameTarget string = '${appName}.azurewebsites.net'
@@ -942,3 +1250,10 @@ output llmEndpoint string = llmBaseUrl
 output rerankEndpoint string = rerankBaseUrl
 output embeddingEndpoint string = embeddingBaseUrl
 output postgresServerFqdn string = postgresServerFqdn
+output hindsightAppDiagnosticsId string = hindsightAppDiagnostics.id
+output collectorAppDiagnosticsId string = collectorAppDiagnostics.id
+output rateLimitActionGroupId string = rateLimitActionGroup.id
+output llmRateLimitAlertId string = llmRateLimitAlert.id
+output rerankRateLimitAlertId string = rerankRateLimitAlert.id
+output llmGenericErrorAlertId string = llmGenericErrorAlert.id
+output rerankGenericErrorAlertId string = rerankGenericErrorAlert.id
