@@ -928,16 +928,6 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
-resource hindsightHostnameBinding 'Microsoft.Web/sites/hostNameBindings@2023-12-01' = {
-  parent: hindsightApp
-  name: apiHostname
-  properties: {
-    customHostNameDnsRecordType: 'CName'
-    hostNameType: 'Verified'
-    siteName: hindsightApp.name
-  }
-}
-
 output apiUrl string = 'https://${apiHostname}'
 output apiHostname string = apiHostname
 output apiHostnameCnameTarget string = '${appName}.azurewebsites.net'
