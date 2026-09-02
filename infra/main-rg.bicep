@@ -828,7 +828,7 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'HINDSIGHT_API_LLM_MODEL'
-          value: llmDeploymentName
+          value: llmModelName
         }
         {
           name: 'HINDSIGHT_API_LLM_BASE_URL'
@@ -841,6 +841,26 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'HINDSIGHT_API_LLM_TEMPERATURE'
           value: 'none'
+        }
+        {
+          name: 'HINDSIGHT_API_WORKER_ID'
+          value: 'hindsight-local'
+        }
+        {
+          name: 'HINDSIGHT_API_AUDIT_LOG_ENABLED'
+          value: 'true'
+        }
+        {
+          name: 'HINDSIGHT_API_CONSOLIDATION_LLM_TIMEOUT'
+          value: '1200'
+        }
+        {
+          name: 'HINDSIGHT_API_REFLECT_LLM_TIMEOUT'
+          value: '1200'
+        }
+        {
+          name: 'HINDSIGHT_API_REFLECT_WALL_TIMEOUT'
+          value: '1200'
         }
         {
           name: 'HINDSIGHT_API_EMBEDDINGS_PROVIDER'
