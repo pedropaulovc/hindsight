@@ -32,4 +32,40 @@ HINDSIGHT_CP_ACCESS_KEY='your-control-plane-key' ./scripts/start-control-plane.s
 
 The launcher uses `@vectorize-io/hindsight-control-plane@0.9.2`. It resolves the package before loading either key. Set `HINDSIGHT_CP_HOSTNAME` or `HINDSIGHT_CP_PORT` to override its local bind address or port.
 
-The deployed API endpoint is [https://app-hindsight-wu2.azurewebsites.net](https://app-hindsight-wu2.azurewebsites.net). It does not host a public Control Plane page; a hosted UI would require a separate Control Plane service.
+The deployed API endpoint is [https://hindsight.vza.net](https://hindsight.vza.net). The Azure App Service origin remains `app-hindsight-wu2.azurewebsites.net`. It does not host a public Control Plane page; a hosted UI would require a separate Control Plane service.
+
+## Custom API hostname
+
+The base Bicep deployment creates the App Service and exposes `apiHostnameVerificationId`. The hostname binding is a separate deployment because App Service provides that verification ID only after the app exists.
+
+When DNS is already configured, the GitHub Actions deployment runs the base deployment, hostname binding, and TLS phases. For a first bootstrap, deploy the base infrastructure, publish the DNS records, then deploy `infra/hostname-binding.bicep` and `infra/hostname-tls.bicep` in order.
+
+| Record | Name | Value |
+| --- | --- | --- |
+| CNAME | `hindsight` | `app-hindsight-wu2.azurewebsites.net` |
+| TXT | `asuid.hindsight` | The `apiHostnameVerificationId` deployment output |
+
+The TXT record is the recommended App Service ownership protection. Deploy the hostname binding after both records resolve:
+
+```bash
+az deployment group create \
+  --resource-group rg-hindsight-wu2 \
+  --template-file infra/hostname-binding.bicep \
+  --parameters \
+    appName=app-hindsight-wu2 \
+    apiHostname=hindsight.vza.net
+```
+
+The TLS phase creates a free App Service managed certificate and binds it with SNI:
+
+```bash
+az deployment group create \
+  --resource-group rg-hindsight-wu2 \
+  --template-file infra/hostname-tls.bicep \
+  --parameters \
+    appName=app-hindsight-wu2 \
+    planName=plan-hindsight-wu2 \
+    apiHostname=hindsight.vza.net
+```
+
+Wait for the managed certificate deployment to finish before using HTTPS. The certificate requires the custom hostname's CNAME to point directly to `app-hindsight-wu2.azurewebsites.net`.

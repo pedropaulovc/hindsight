@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly default_api_url="https://app-hindsight-wu2.azurewebsites.net"
+readonly default_api_url="https://hindsight.vza.net"
 readonly api_url="${HINDSIGHT_CP_DATAPLANE_API_URL:-$default_api_url}"
 
 xtrace_was_enabled=0

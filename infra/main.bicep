@@ -33,6 +33,8 @@ param githubRepositoryId string = '1353841016'
 
 @description('GitHub environment name used by the deployment workflow.')
 param githubEnvironment string = 'prod'
+@description('Public custom hostname for the Hindsight API.')
+param apiHostname string = 'hindsight.vza.net'
 
 @secure()
 @description('API key required by Hindsight clients.')
@@ -62,6 +64,7 @@ module hindsightResources 'main-rg.bicep' = {
     location: location
     aiLocation: aiLocation
     hindsightApiKey: hindsightApiKey
+    apiHostname: apiHostname
     otelReceiverToken: otelReceiverToken
     postgresAdminPassword: postgresAdminPassword
     restoreLlmAccount: restoreLlmAccount
@@ -78,6 +81,9 @@ module hindsightResources 'main-rg.bicep' = {
 
 output resourceGroupName string = deploymentResourceGroup.name
 output apiUrl string = hindsightResources.outputs.apiUrl
+output apiHostname string = hindsightResources.outputs.apiHostname
+output apiHostnameCnameTarget string = hindsightResources.outputs.apiHostnameCnameTarget
+output apiHostnameVerificationId string = hindsightResources.outputs.apiHostnameVerificationId
 output collectorUrl string = hindsightResources.outputs.collectorUrl
 output applicationInsightsId string = hindsightResources.outputs.applicationInsightsId
 output dataCollectionRuleId string = hindsightResources.outputs.dataCollectionRuleId
