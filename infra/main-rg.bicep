@@ -29,8 +29,8 @@ param restoreRerankAccount bool = false
 
 @description('Azure OpenAI deployment name for GPT-5.6-luna.')
 param llmDeploymentName string = 'gpt-5-6-luna'
-@description('GlobalStandard quota units allocated to the GPT-5.6-luna deployment. Each unit provides 1,000 TPM.')
-param llmDeploymentCapacity int = 1000
+@description('GlobalStandard quota units allocated to the GPT-5.6-luna deployment. Each unit provides 1,000 TPM; 100 units provide 100 RPM and 100,000 TPM.')
+param llmDeploymentCapacity int = 100
 
 
 @description('Azure OpenAI deployment name for text-embedding-3-small.')
