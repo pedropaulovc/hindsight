@@ -32,4 +32,15 @@ HINDSIGHT_CP_ACCESS_KEY='your-control-plane-key' ./scripts/start-control-plane.s
 
 The launcher uses `@vectorize-io/hindsight-control-plane@0.9.2`. It resolves the package before loading either key. Set `HINDSIGHT_CP_HOSTNAME` or `HINDSIGHT_CP_PORT` to override its local bind address or port.
 
-The deployed API endpoint is [https://app-hindsight-wu2.azurewebsites.net](https://app-hindsight-wu2.azurewebsites.net). It does not host a public Control Plane page; a hosted UI would require a separate Control Plane service.
+The deployed API endpoint is [https://hindsight.vza.net](https://hindsight.vza.net). The Azure App Service origin remains `app-hindsight-wu2.azurewebsites.net`. It does not host a public Control Plane page; a hosted UI would require a separate Control Plane service.
+
+## Custom API hostname
+
+The Bicep deployment binds `hindsight.vza.net` to the Hindsight API App Service. Create the DNS records before deploying the hostname binding:
+
+| Record | Name | Value |
+| --- | --- | --- |
+| CNAME | `hindsight` | `app-hindsight-wu2.azurewebsites.net` |
+| TXT | `asuid.hindsight` | The `apiHostnameVerificationId` deployment output |
+
+The TXT record is the recommended App Service ownership protection. The binding resource maps the hostname but does not provision a custom-domain certificate; direct HTTPS traffic requires an App Service certificate binding or a TLS-terminating proxy with a valid origin configuration.

@@ -41,6 +41,8 @@ param planName string = 'plan-hindsight-wu2'
 
 @description('Hindsight API App Service name.')
 param appName string = 'app-hindsight-wu2'
+@description('Public custom hostname for the Hindsight API.')
+param apiHostname string = 'hindsight.vza.net'
 
 @description('PostgreSQL Flexible Server name.')
 param postgresServerName string = 'pg-hindsight-wu2'
@@ -926,7 +928,20 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
   }
 }
 
-output apiUrl string = 'https://${appName}.azurewebsites.net'
+resource hindsightHostnameBinding 'Microsoft.Web/sites/hostNameBindings@2023-12-01' = {
+  parent: hindsightApp
+  name: apiHostname
+  properties: {
+    customHostNameDnsRecordType: 'CName'
+    hostNameType: 'Verified'
+    siteName: hindsightApp.name
+  }
+}
+
+output apiUrl string = 'https://${apiHostname}'
+output apiHostname string = apiHostname
+output apiHostnameCnameTarget string = '${appName}.azurewebsites.net'
+output apiHostnameVerificationId string = hindsightApp.properties.customDomainVerificationId
 output collectorUrl string = collectorBaseUrl
 output applicationInsightsId string = applicationInsights.id
 output dataCollectionRuleId string = dataCollectionRule.id
