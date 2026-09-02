@@ -43,6 +43,8 @@ param hindsightApiKey string
 @secure()
 @description('Bearer token accepted by the private OTLP collector endpoint.')
 param otelReceiverToken string
+@description('Email address that receives Azure Monitor 429 alerts.')
+param rateLimitAlertEmail string = 'pedro@vezza.com.br'
 
 @secure()
 @description('PostgreSQL Flexible Server administrator password.')
@@ -66,6 +68,7 @@ module hindsightResources 'main-rg.bicep' = {
     hindsightApiKey: hindsightApiKey
     apiHostname: apiHostname
     otelReceiverToken: otelReceiverToken
+    rateLimitAlertEmail: rateLimitAlertEmail
     postgresAdminPassword: postgresAdminPassword
     restoreLlmAccount: restoreLlmAccount
     restoreRerankAccount: restoreRerankAccount
@@ -94,3 +97,8 @@ output llmEndpoint string = hindsightResources.outputs.llmEndpoint
 output rerankEndpoint string = hindsightResources.outputs.rerankEndpoint
 output embeddingEndpoint string = hindsightResources.outputs.embeddingEndpoint
 output postgresServerFqdn string = hindsightResources.outputs.postgresServerFqdn
+output hindsightAppDiagnosticsId string = hindsightResources.outputs.hindsightAppDiagnosticsId
+output collectorAppDiagnosticsId string = hindsightResources.outputs.collectorAppDiagnosticsId
+output rateLimitActionGroupId string = hindsightResources.outputs.rateLimitActionGroupId
+output llmRateLimitAlertId string = hindsightResources.outputs.llmRateLimitAlertId
+output rerankRateLimitAlertId string = hindsightResources.outputs.rerankRateLimitAlertId
