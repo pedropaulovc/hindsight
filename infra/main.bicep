@@ -46,7 +46,7 @@ param otelReceiverToken string
 @description('Email address that receives Azure Monitor 429 alerts.')
 param rateLimitAlertEmail string = 'pedro@vezza.com.br'
 @description('GlobalStandard quota units allocated to text-embedding-3-small.')
-param embeddingDeploymentCapacity int = 10
+param embeddingDeploymentCapacity int = 30
 @description('GlobalStandard quota units allocated to Cohere reranking.')
 param rerankDeploymentCapacity int = 30
 

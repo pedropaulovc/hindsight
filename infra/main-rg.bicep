@@ -38,7 +38,7 @@ param llmDeploymentCapacity int = 1000
 @description('Azure OpenAI deployment name for text-embedding-3-small.')
 param embeddingDeploymentName string = 'embedding-3-small'
 @description('GlobalStandard quota units allocated to text-embedding-3-small. Each unit provides 1,000 TPM and 1 request every 10 seconds.')
-param embeddingDeploymentCapacity int = 10
+param embeddingDeploymentCapacity int = 30
 
 @description('Azure AI Services deployment name for Cohere reranking.')
 param rerankDeploymentName string = 'cohere-rerank-v4-0-pro'
