@@ -47,6 +47,8 @@ param otelReceiverToken string
 param rateLimitAlertEmail string = 'pedro@vezza.com.br'
 @description('GlobalStandard quota units allocated to text-embedding-3-small.')
 param embeddingDeploymentCapacity int = 10
+@description('GlobalStandard quota units allocated to Cohere reranking.')
+param rerankDeploymentCapacity int = 10
 
 @secure()
 @description('PostgreSQL Flexible Server administrator password.')
@@ -72,6 +74,7 @@ module hindsightResources 'main-rg.bicep' = {
     otelReceiverToken: otelReceiverToken
     rateLimitAlertEmail: rateLimitAlertEmail
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
+    rerankDeploymentCapacity: rerankDeploymentCapacity
     postgresAdminPassword: postgresAdminPassword
     restoreLlmAccount: restoreLlmAccount
     restoreRerankAccount: restoreRerankAccount
