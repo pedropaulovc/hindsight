@@ -42,6 +42,8 @@ param embeddingDeploymentCapacity int = 10
 
 @description('Azure AI Services deployment name for Cohere reranking.')
 param rerankDeploymentName string = 'cohere-rerank-v4-0-pro'
+@description('GlobalStandard quota units allocated to Cohere reranking. Each unit provides 1 request and 1,000 tokens per 60 seconds.')
+param rerankDeploymentCapacity int = 10
 
 @description('App Service plan name.')
 param planName string = 'plan-hindsight-wu2'
@@ -642,7 +644,7 @@ resource rerankDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024
   name: rerankDeploymentName
   sku: {
     name: 'GlobalStandard'
-    capacity: 1
+    capacity: rerankDeploymentCapacity
   }
   properties: {
     model: {
