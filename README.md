@@ -44,12 +44,23 @@ To start the local Control Plane automatically with the user systemd manager:
 
 This installs and enables `hindsight-control-plane.service`, which runs
 `scripts/start-control-plane.sh`, binds the UI to `localhost:9999`, restarts it
-after failures, and continues to read the backend API key from the Azure App
-Service settings. Check the service and follow its logs with:
+after failures, and writes output to the user journal. If the service
+environment does not set `HINDSIGHT_CP_DATAPLANE_API_KEY`, the launcher reads
+the backend API key from the Azure App Service settings. Check the service and
+follow its logs with:
 
 ```bash
 systemctl --user status hindsight-control-plane.service
 journalctl --user -u hindsight-control-plane.service -f
+```
+
+On WSL, enable the systemd user manager before installing if `systemctl --user`
+is unavailable. Add this to `/etc/wsl.conf`, restart WSL, and rerun the
+installer:
+
+```ini
+[boot]
+systemd=true
 ```
 
 The service starts when the user systemd manager starts. To start it at WSL
@@ -59,10 +70,12 @@ boot before an interactive login, enable user lingering once:
 loginctl enable-linger "$USER"
 ```
 
-To require a separate key for the local UI, create
-`~/.config/hindsight/control-plane.env` with mode `600`:
+To provide the backend key without Azure CLI, or to require a separate key for
+the local UI, create
+`${XDG_CONFIG_HOME:-$HOME/.config}/hindsight/control-plane.env` with mode `600`:
 
 ```text
+HINDSIGHT_CP_DATAPLANE_API_KEY=your-api-key
 HINDSIGHT_CP_ACCESS_KEY=your-control-plane-key
 ```
 
@@ -79,6 +92,7 @@ systemctl --user disable --now hindsight-control-plane.service
 ```
 
 The service is local-only; it does not publish a hosted Control Plane endpoint.
+
 
 ## Custom API hostname
 

@@ -13,6 +13,18 @@ fail() {
   printf '%s\n' "$*" >&2
   exit 1
 }
+unit_escape() {
+  local value="$1"
+  value=${value//\\/\\\\}
+  value=${value//\"/\\\"}
+  value=${value//$' '/\\x20}
+  value=${value//$'\n'/\\x0a}
+  value=${value//$'\r'/\\x0d}
+  value=${value//$'\t'/\\x09}
+  value=${value//%/%%}
+  printf '%s' "$value"
+}
+
 
 command -v systemctl >/dev/null 2>&1 || fail 'systemctl is required to install the user service.'
 
@@ -28,7 +40,22 @@ fi
 [[ -n "$npx_path" ]] || fail 'npx is required. Install Node.js or configure nvm before installing the service.'
 
 az_path="$(command -v az || true)"
-[[ -n "$az_path" ]] || fail 'Azure CLI is required because the launcher reads the API key from App Service settings.'
+if [[ -z "$az_path" ]]; then
+  printf '%s\n' 'Azure CLI not found; set HINDSIGHT_CP_DATAPLANE_API_KEY in the service environment file before starting.' >&2
+fi
+
+
+runtime_path="$(dirname -- "$npx_path"):/usr/local/bin:/usr/bin:/bin"
+if [[ -n "$az_path" ]]; then
+  runtime_path="$(dirname -- "$az_path"):${runtime_path}"
+fi
+
+escaped_repo_dir="$(unit_escape "$repo_dir")"
+escaped_home="$(unit_escape "$HOME")"
+escaped_runtime_path="$(unit_escape "$runtime_path")"
+escaped_control_plane_env="$(unit_escape "$control_plane_env")"
+escaped_exec_path="$(unit_escape "${repo_dir}/scripts/start-control-plane.sh")"
+
 
 mkdir -p "$service_dir" "${config_dir}/hindsight"
 
@@ -40,13 +67,14 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=${repo_dir}
-Environment=HOME=${HOME}
-Environment=PATH=$(dirname -- "$npx_path"):$(dirname -- "$az_path"):/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=${escaped_repo_dir}
+Environment=HOME=${escaped_home}
+Environment=PATH=${escaped_runtime_path}
 Environment=HINDSIGHT_CP_HOSTNAME=localhost
 Environment=HINDSIGHT_CP_PORT=9999
-EnvironmentFile=-${control_plane_env}
-ExecStart=${repo_dir}/scripts/start-control-plane.sh
+EnvironmentFile=-${escaped_control_plane_env}
+ExecStart=${escaped_exec_path}
+
 Restart=on-failure
 RestartSec=5s
 TimeoutStartSec=10min
@@ -61,7 +89,8 @@ EOF
 
 chmod 0644 "$service_path"
 systemctl --user daemon-reload
-systemctl --user enable --now "$service_name"
+systemctl --user enable "$service_name"
+systemctl --user restart "$service_name"
 
 printf 'Enabled %s\n' "$service_name"
 printf 'Service file: %s\n' "$service_path"
