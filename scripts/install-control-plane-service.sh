@@ -58,6 +58,13 @@ escaped_exec_path="$(unit_escape "${repo_dir}/scripts/start-control-plane.sh")"
 
 
 mkdir -p "$service_dir" "${config_dir}/hindsight"
+if [[ -e "$control_plane_env" && ! -f "$control_plane_env" ]]; then
+  fail "The service environment path is not a regular file: ${control_plane_env}"
+fi
+if [[ -f "$control_plane_env" ]]; then
+  chmod 0600 "$control_plane_env"
+fi
+
 
 cat >"$service_path" <<EOF
 [Unit]

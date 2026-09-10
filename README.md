@@ -74,6 +74,15 @@ To provide the backend key without Azure CLI, or to require a separate key for
 the local UI, create
 `${XDG_CONFIG_HOME:-$HOME/.config}/hindsight/control-plane.env` with mode `600`:
 
+```bash
+env_file="${XDG_CONFIG_HOME:-$HOME/.config}/hindsight/control-plane.env"
+install -d "$(dirname "$env_file")"
+touch "$env_file"
+chmod 600 "$env_file"
+```
+
+Add the required values:
+
 ```text
 HINDSIGHT_CP_DATAPLANE_API_KEY=your-api-key
 HINDSIGHT_CP_ACCESS_KEY=your-control-plane-key
