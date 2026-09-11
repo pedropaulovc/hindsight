@@ -106,7 +106,8 @@ param githubEnvironment string = 'prod'
 
 
 
-var hindsightImage = 'ghcr.io/vectorize-io/hindsight-api:0.9.2-slim'
+// Dependabot tracks this image in Dockerfile; keep that file to one FROM line.
+var hindsightImage = trim(replace(loadTextContent('Dockerfile'), 'FROM ', ''))
 var collectorImage = 'otel/opentelemetry-collector-contrib:0.132.0'
 var llmModelName = 'gpt-5.6-luna'
 var llmModelVersion = '2026-07-09'
