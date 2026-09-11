@@ -1016,6 +1016,60 @@ resource collectorAppDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-
     ]
   }
 }
+resource hindsightAppModelErrorAlert 'Microsoft.Insights/scheduledQueryRules@2021-08-01' = {
+  name: 'alert-hindsight-app-model-errors'
+  location: location
+  kind: 'LogAlert'
+  properties: {
+    displayName: 'Hindsight application model errors'
+    description: 'Alerts when the Hindsight API logs an LLM, embedding, or reranker provider error.'
+    severity: 2
+    enabled: true
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT15M'
+    autoMitigate: true
+    scopes: [
+      logAnalytics.id
+    ]
+    criteria: {
+      allOf: [
+        {
+          query: format('''
+AppServiceConsoleLogs
+| where _ResourceId =~ '{0}'
+| where TimeGenerated > ago(15m)
+| extend payload = parse_json(ResultDescription)
+| extend
+    Severity = tostring(payload.severity),
+    Error = tostring(payload.message),
+    Logger = tostring(payload.logger),
+    Exception = tostring(payload.exception)
+| where Severity in~ ('ERROR', 'CRITICAL')
+| where Error has_any ('embedding', 'openai', 'cohere', 'llm', 'model')
+    or Exception has_any ('embedding', 'openai', 'cohere', 'llm', 'model')
+| where Error !has '429'
+| where isempty(Exception) or Exception !has '429'
+''', hindsightApp.id)
+          timeAggregation: 'Count'
+          operator: 'GreaterThan'
+          threshold: 0
+          resourceIdColumn: '_ResourceId'
+        }
+      ]
+    }
+    actions: {
+      actionGroups: [
+        rateLimitActionGroup.id
+      ]
+    }
+    skipQueryValidation: false
+  }
+  tags: {
+    application: 'hindsight'
+    managedBy: 'bicep'
+    purpose: 'error-alerting'
+  }
+}
 
 resource rateLimitActionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
   name: 'ag-hindsight-429'
@@ -1176,11 +1230,6 @@ resource llmGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
         }
       ]
     }
-    actions: [
-      {
-        actionGroupId: rateLimitActionGroup.id
-      }
-    ]
   }
   tags: {
     application: 'hindsight'
@@ -1227,11 +1276,6 @@ resource rerankGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = 
         }
       ]
     }
-    actions: [
-      {
-        actionGroupId: rateLimitActionGroup.id
-      }
-    ]
   }
   tags: {
     application: 'hindsight'
@@ -1261,3 +1305,4 @@ output llmRateLimitAlertId string = llmRateLimitAlert.id
 output rerankRateLimitAlertId string = rerankRateLimitAlert.id
 output llmGenericErrorAlertId string = llmGenericErrorAlert.id
 output rerankGenericErrorAlertId string = rerankGenericErrorAlert.id
+output hindsightAppModelErrorAlertId string = hindsightAppModelErrorAlert.id
