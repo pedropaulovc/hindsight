@@ -110,3 +110,4 @@ output llmRateLimitAlertId string = hindsightResources.outputs.llmRateLimitAlert
 output rerankRateLimitAlertId string = hindsightResources.outputs.rerankRateLimitAlertId
 output llmGenericErrorAlertId string = hindsightResources.outputs.llmGenericErrorAlertId
 output rerankGenericErrorAlertId string = hindsightResources.outputs.rerankGenericErrorAlertId
+output hindsightAppModelErrorAlertId string = hindsightResources.outputs.hindsightAppModelErrorAlertId
