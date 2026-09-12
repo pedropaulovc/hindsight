@@ -1023,7 +1023,7 @@ resource hindsightAppModelErrorAlert 'Microsoft.Insights/scheduledQueryRules@202
   kind: 'LogAlert'
   properties: {
     displayName: 'Hindsight application model errors'
-    description: 'Alerts when the Hindsight API logs an LLM, embedding, or reranker provider error.'
+    description: 'Alerts when the Hindsight API logs an LLM, embedding, or reranker provider error, excluding the known oversized embedding input validation error.'
     severity: 2
     enabled: true
     evaluationFrequency: 'PT5M'
@@ -1050,6 +1050,10 @@ AppServiceConsoleLogs
     or Exception has_any ('embedding', 'openai', 'cohere', 'llm', 'model')
 | where Error !has '429'
 | where isempty(Exception) or Exception !has '429'
+| where not (
+    (Error contains 'Failed to generate batch embeddings' or Exception contains 'Failed to generate batch embeddings')
+    and (Error contains 'maximum input length is 8192 tokens' or Exception contains 'maximum input length is 8192 tokens')
+)
 ''', hindsightApp.id)
           timeAggregation: 'Count'
           operator: 'GreaterThan'
