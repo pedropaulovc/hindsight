@@ -856,7 +856,7 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'HINDSIGHT_API_LLM_REASONING_EFFORT'
-          value: 'high'
+          value: 'medium'
         }
         {
           name: 'HINDSIGHT_API_LLM_TEMPERATURE'
