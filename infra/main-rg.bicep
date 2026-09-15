@@ -1057,7 +1057,7 @@ AppServiceConsoleLogs
 ''', hindsightApp.id)
           timeAggregation: 'Count'
           operator: 'GreaterThan'
-          threshold: 0
+          threshold: 3
           resourceIdColumn: '_ResourceId'
         }
       ]
@@ -1119,7 +1119,7 @@ resource llmRateLimitAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
           metricName: 'AzureOpenAIRequests'
           metricNamespace: 'Microsoft.CognitiveServices/accounts'
           operator: 'GreaterThan'
-          threshold: 0
+          threshold: 3
           timeAggregation: 'Total'
           skipMetricValidation: false
           dimensions: [
@@ -1169,7 +1169,7 @@ resource rerankRateLimitAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
           metricName: 'ModelRequests'
           metricNamespace: 'Microsoft.CognitiveServices/accounts'
           operator: 'GreaterThan'
-          threshold: 0
+          threshold: 3
           timeAggregation: 'Total'
           skipMetricValidation: false
           dimensions: [
@@ -1219,7 +1219,7 @@ resource llmGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
           metricName: 'AzureOpenAIRequests'
           metricNamespace: 'Microsoft.CognitiveServices/accounts'
           operator: 'GreaterThan'
-          threshold: 0
+          threshold: 3
           timeAggregation: 'Total'
           skipMetricValidation: false
           dimensions: [
@@ -1265,7 +1265,7 @@ resource rerankGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = 
           metricName: 'ModelRequests'
           metricNamespace: 'Microsoft.CognitiveServices/accounts'
           operator: 'GreaterThan'
-          threshold: 0
+          threshold: 3
           timeAggregation: 'Total'
           skipMetricValidation: false
           dimensions: [
