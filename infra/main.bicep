@@ -6,7 +6,7 @@ param location string = 'westus2'
 @description('Resource group that owns the Hindsight deployment.')
 param resourceGroupName string = 'rg-hindsight-wu2'
 
-@description('Azure region for Azure OpenAI. GPT-5.6-luna is not listed for westus2, so the default is westus3.')
+@description('Azure region for Azure OpenAI. GPT-6-luna is available in the default region, westus3.')
 param aiLocation string = 'westus3'
 @description('Restore the soft-deleted Azure OpenAI account during recovery.')
 param restoreLlmAccount bool = false

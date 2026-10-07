@@ -2,6 +2,8 @@
 
 This repository provisions the Hindsight API and its Azure dependencies.
 
+Generation uses Azure OpenAI `gpt-6-luna`, version `2026-09-22`, in `westus3`, through the Responses API with medium reasoning effort. The `GlobalStandard` deployment has 1,000 quota units (1,000,000 TPM and 1,000 RPM). Model versions are pinned in `infra/main-rg.bicep`; automatic upgrades are disabled.
+
 ## Open the Control Plane
 
 The Azure deployment runs the API container only. Start the Control Plane locally and point it at the deployed API:

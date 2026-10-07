@@ -3,7 +3,7 @@ targetScope = 'resourceGroup'
 @description('Azure region for the App Service and monitoring resources.')
 param location string = 'westus2'
 
-@description('Azure region for Azure OpenAI. GPT-5.6-luna is not listed for westus2, so the default is westus3.')
+@description('Azure region for Azure OpenAI. GPT-6-luna is available in the default region, westus3.')
 param aiLocation string = 'westus3'
 
 
@@ -29,9 +29,9 @@ param restoreLlmAccount bool = false
 @description('Restore the soft-deleted Azure AI Services account during recovery.')
 param restoreRerankAccount bool = false
 
-@description('Azure OpenAI deployment name for GPT-5.6-luna.')
-param llmDeploymentName string = 'gpt-5-6-luna'
-@description('GlobalStandard quota units allocated to the GPT-5.6-luna deployment. Each unit provides 1,000 TPM and 1 RPM; 1,000 units provide 1,000,000 TPM and 1,000 RPM.')
+@description('Azure OpenAI deployment name for GPT-6-luna.')
+param llmDeploymentName string = 'gpt-6-luna'
+@description('GlobalStandard quota units allocated to the GPT-6-luna deployment. Each unit provides 1,000 TPM and 1 RPM; 1,000 units provide 1,000,000 TPM and 1,000 RPM.')
 param llmDeploymentCapacity int = 1000
 
 
@@ -109,8 +109,8 @@ param githubEnvironment string = 'prod'
 // Dependabot tracks this image in Dockerfile; keep that file to one FROM line.
 var hindsightImage = trim(replace(loadTextContent('Dockerfile'), 'FROM ', ''))
 var collectorImage = 'otel/opentelemetry-collector-contrib:0.132.0'
-var llmModelName = 'gpt-5.6-luna'
-var llmModelVersion = '2026-07-09'
+var llmModelName = 'gpt-6-luna'
+var llmModelVersion = '2026-09-22'
 var embeddingModelName = 'text-embedding-3-small'
 var embeddingModelVersion = '1'
 var rerankModelName = 'Cohere-rerank-v4.0-pro'
