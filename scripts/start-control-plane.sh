@@ -26,7 +26,7 @@ fi
 unset HINDSIGHT_CP_DATAPLANE_API_KEY HINDSIGHT_CP_ACCESS_KEY
 
 set +e
-npx --yes --ignore-scripts @vectorize-io/hindsight-control-plane@0.9.2 --help >/dev/null
+npx --yes --ignore-scripts @vectorize-io/hindsight-control-plane@0.10.2 --help >/dev/null
 package_status=$?
 set -e
 
@@ -95,7 +95,7 @@ if (( xtrace_was_enabled )); then
   set -x
 fi
 
-exec npx --no-install @vectorize-io/hindsight-control-plane@0.9.2 \
+exec npx --no-install @vectorize-io/hindsight-control-plane@0.10.2 \
   --api-url "$api_url" \
   --hostname "${HINDSIGHT_CP_HOSTNAME:-localhost}" \
   --port "${HINDSIGHT_CP_PORT:-9999}"
