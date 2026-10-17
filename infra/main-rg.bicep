@@ -47,6 +47,9 @@ param appName string = 'app-hindsight-wu2'
 @description('Public custom hostname for the Hindsight API.')
 param apiHostname string = 'hindsight.vza.net'
 
+@description('Full API image reference; empty uses the patched public image matching the upstream Dockerfile version.')
+param apiImage string = ''
+
 @description('PostgreSQL Flexible Server name.')
 param postgresServerName string = 'pg-hindsight-wu2'
 
@@ -101,7 +104,9 @@ param githubEnvironment string = 'prod'
 
 
 // Dependabot tracks this image in Dockerfile; keep that file to one FROM line.
-var hindsightImage = trim(replace(loadTextContent('Dockerfile'), 'FROM ', ''))
+var upstreamImage = trim(replace(loadTextContent('Dockerfile'), 'FROM ', ''))
+var upstreamImageTag = last(split(upstreamImage, ':'))
+var hindsightImage = empty(apiImage) ? 'ghcr.io/pedropaulovc/hindsight-api:${upstreamImageTag}-jev-long-context' : apiImage
 var collectorImage = 'otel/opentelemetry-collector-contrib:0.132.0'
 var llmModelName = 'gpt-6-luna'
 var llmModelVersion = '2026-09-22'
