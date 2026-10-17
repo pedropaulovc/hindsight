@@ -8,7 +8,7 @@ Reranking uses TypeSafe Jev at [https://api.typesafe.ai](https://api.typesafe.ai
 
 ## Jev long-context image
 
-The upstream Hindsight API `0.10.3` TypeSafe adapter has no custom-header configuration. To address Jev HTTP 400 `max_tokens_exceeded` errors without changing reranking behavior, this deployment derives a minimal image from the upstream base and adds `TypeSafe-Danger-Zone-Long-Context: true` to every `TypeSafeCrossEncoder._ask` request. [TypeSafe documents](https://docs.typesafe.ai/models.md#long-context) that the header raises both per-request and per-question limits to 262k tokens at the **same $0.042 per million input tokens**, with output tokens free. Larger contexts can be slower and less accurate; unchanged per-token pricing does not make additional input tokens free.
+The pinned upstream Hindsight TypeSafe adapter has no custom-header configuration. To address Jev HTTP 400 `max_tokens_exceeded` errors without changing request grouping, this deployment derives a minimal image from the upstream base and adds `TypeSafe-Danger-Zone-Long-Context: true` to every `TypeSafeCrossEncoder._ask` request. [TypeSafe documents](https://docs.typesafe.ai/models.md#long-context) that the header raises both per-request and per-question limits to 262k tokens at the **same $0.042 per million input tokens**, with output tokens free. Larger contexts can be slower and less accurate; unchanged per-token pricing does not make additional input tokens free.
 
 The build-time patch only merges this header into the existing bank-attribution headers; session authentication and all other source remain unchanged. Hindsight's existing 26,000-token grouping and 250-option limit remain unchanged, as do `jev-latest` and candidate pruning disabled. There are no new adaptive retries, fallback providers, or truncation changes.
 
@@ -17,14 +17,15 @@ The build-time patch only merges this header into the existing bank-attribution 
 To build the currently pinned version locally from the repository root:
 
 ```bash
+read -r _ BASE_IMAGE _ < infra/Dockerfile
 docker build \
   --file infra/jev-long-context.Dockerfile \
-  --build-arg BASE_IMAGE=ghcr.io/vectorize-io/hindsight-api:0.10.3-slim \
-  --tag ghcr.io/pedropaulovc/hindsight-api:0.10.3-slim-jev-long-context \
+  --build-arg BASE_IMAGE="$BASE_IMAGE" \
+  --tag "ghcr.io/pedropaulovc/hindsight-api:${BASE_IMAGE##*:}-jev-long-context" \
   .
 ```
 
-GitHub Actions publishes `ghcr.io/pedropaulovc/hindsight-api` with `sha-${GITHUB_SHA}` and `${upstream_tag}-jev-long-context` tags, where `upstream_tag` comes from `infra/Dockerfile`. The image links back to this repository through its OCI source label. Before the first production deployment, publish the image and make the GHCR package **public** so Azure can pull it without adding registry credentials. A feature-branch `workflow_dispatch` builds and publishes without deploying production; only a successful build on `main` permits the production deployment.
+GitHub Actions builds the patch on pull requests without publishing. Other runs publish `ghcr.io/pedropaulovc/hindsight-api:sha-${GITHUB_SHA}`; only `main` also publishes the `${upstream_tag}-jev-long-context` alias, where `upstream_tag` comes from `infra/Dockerfile`. The image links back to this repository through its OCI source label. Before the first production deployment, publish the image and make the GHCR package **public** so Azure can pull it without adding registry credentials. A feature-branch `workflow_dispatch` builds and publishes without deploying production; only a successful build on `main` permits the production deployment.
 
 The deployment workflow passes the published immutable digest to Bicep. For a manual deployment, both `infra/main.bicep` and `infra/main-rg.bicep` accept an optional `apiImage` parameter. An empty value (the default) derives the public patched tag from the upstream version pin. To select a specific published build, add `apiImage=ghcr.io/pedropaulovc/hindsight-api@sha256:<published-digest>` to the existing deployment parameters, preserving all secure parameters below.
 

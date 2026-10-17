@@ -5,6 +5,7 @@ on:
     branches:
       - main
   workflow_dispatch:
+  pull_request:
 
 permissions:
   contents: read
@@ -14,8 +15,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate-image:
+    name: Validate patched API image
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: |
+          set -euo pipefail
+          read -r instruction base_image extra < infra/Dockerfile
+          [[ "$instruction" == FROM && -n "$base_image" && -z "$extra" ]]
+          docker build --file infra/jev-long-context.Dockerfile --build-arg BASE_IMAGE="$base_image" .
+
   build-image:
     name: Publish patched API image
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -51,12 +69,13 @@ jobs:
           docker build \
             --file infra/jev-long-context.Dockerfile \
             --build-arg BASE_IMAGE="$base_image" \
-            --label org.opencontainers.image.source=https://github.com/pedropaulovc/hindsight \
             --tag "$sha_image" \
-            --tag "$alias_image" \
             .
           docker push "$sha_image"
-          docker push "$alias_image"
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            docker tag "$sha_image" "$alias_image"
+            docker push "$alias_image"
+          fi
           immutable_image="$(docker image inspect --format '{{index .RepoDigests 0}}' "$sha_image")"
           case "$immutable_image" in
             "$image"@sha256:* ) ;;
