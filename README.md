@@ -12,15 +12,16 @@ The pinned upstream Hindsight TypeSafe adapter has no custom-header configuratio
 
 The build-time patch only merges this header into the existing bank-attribution headers; session authentication and all other source remain unchanged. Hindsight's existing 26,000-token grouping and 250-option limit remain unchanged, as do `jev-latest` and candidate pruning disabled. There are no new adaptive retries, fallback providers, or truncation changes.
 
-`infra/Dockerfile` remains the single-line upstream version pin tracked by Dependabot. `infra/jev-long-context.Dockerfile` accepts that image as `BASE_IMAGE`, runs the standard-library patch script as the existing `hindsight` user, and installs no dependencies. The build fails if the expected TypeSafe class, async `_ask` method, or single headers expression changes; review the upstream adapter before updating the patch.
+This source rewrite is temporary and must be removed when Hindsight publishes native long-context configuration. [Issue #23](https://github.com/pedropaulovc/hindsight/issues/23) tracks the upstream contribution and the release-gated return to the stock image. An upstream merge alone is not sufficient; verify the released image and production recall before closing the issue.
+
+`infra/Dockerfile` is the actual build Dockerfile. Its first line pins the upstream image with a literal `FROM` that Dependabot updates. The remaining instructions run the temporary patch as the existing `hindsight` user and install no dependencies. The build fails if the expected TypeSafe class, async `_ask` method, or single headers expression changes; review the upstream adapter before updating the patch.
 
 To build the currently pinned version locally from the repository root:
 
 ```bash
 read -r _ BASE_IMAGE _ < infra/Dockerfile
 docker build \
-  --file infra/jev-long-context.Dockerfile \
-  --build-arg BASE_IMAGE="$BASE_IMAGE" \
+  --file infra/Dockerfile \
   --tag "ghcr.io/pedropaulovc/hindsight-api:${BASE_IMAGE##*:}-jev-long-context" \
   .
 ```

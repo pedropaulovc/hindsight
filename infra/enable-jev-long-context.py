@@ -1,4 +1,8 @@
-"""Apply the deployment-only Jev header patch to the pinned upstream image."""
+"""Apply the temporary deployment-only Jev header patch to the upstream image.
+
+Remove when upstream ships native support:
+https://github.com/pedropaulovc/hindsight/issues/23
+"""
 
 import ast
 from pathlib import Path
