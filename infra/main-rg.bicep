@@ -103,8 +103,8 @@ param githubEnvironment string = 'prod'
 
 
 
-// Dependabot tracks this image in Dockerfile; keep that file to one FROM line.
-var upstreamImage = trim(replace(loadTextContent('Dockerfile'), 'FROM ', ''))
+// Dependabot tracks the literal base image on the Dockerfile's first line.
+var upstreamImage = trim(replace(first(split(loadTextContent('Dockerfile'), '\n')), 'FROM ', ''))
 var upstreamImageTag = last(split(upstreamImage, ':'))
 var hindsightImage = empty(apiImage) ? 'ghcr.io/pedropaulovc/hindsight-api:${upstreamImageTag}-jev-long-context' : apiImage
 var collectorImage = 'otel/opentelemetry-collector-contrib:0.132.0'

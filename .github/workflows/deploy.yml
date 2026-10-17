@@ -27,9 +27,7 @@ jobs:
           persist-credentials: false
       - run: |
           set -euo pipefail
-          read -r instruction base_image extra < infra/Dockerfile
-          [[ "$instruction" == FROM && -n "$base_image" && -z "$extra" ]]
-          docker build --file infra/jev-long-context.Dockerfile --build-arg BASE_IMAGE="$base_image" .
+          docker build --file infra/Dockerfile .
 
   build-image:
     name: Publish patched API image
@@ -54,7 +52,7 @@ jobs:
           set -euo pipefail
           read -r instruction base_image extra < infra/Dockerfile
           if [[ "$instruction" != FROM || -z "$base_image" || -n "$extra" ]]; then
-            echo "infra/Dockerfile must contain one FROM image declaration" >&2
+            echo "infra/Dockerfile must start with a literal FROM image declaration" >&2
             exit 1
           fi
           case "$base_image" in
@@ -67,8 +65,7 @@ jobs:
           alias_image="$image:$upstream_tag-jev-long-context"
           printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
           docker build \
-            --file infra/jev-long-context.Dockerfile \
-            --build-arg BASE_IMAGE="$base_image" \
+            --file infra/Dockerfile \
             --tag "$sha_image" \
             .
           docker push "$sha_image"
