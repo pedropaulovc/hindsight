@@ -27,6 +27,11 @@ jobs:
           persist-credentials: false
       - run: |
           set -euo pipefail
+          read -r instruction base_image extra < infra/Dockerfile
+          if [[ "$instruction" != FROM || "$base_image" != ghcr.io/vectorize-io/hindsight-api:* || -n "$extra" ]]; then
+            echo "infra/Dockerfile must start with a literal upstream FROM image declaration" >&2
+            exit 1
+          fi
           docker build --file infra/Dockerfile .
 
   build-image:
