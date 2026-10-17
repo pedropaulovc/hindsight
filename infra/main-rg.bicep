@@ -12,6 +12,10 @@ param aiLocation string = 'westus3'
 param hindsightApiKey string
 
 @secure()
+@description('TypeSafe API key used by the Jev reranker.')
+param typesafeApiKey string
+
+@secure()
 @description('Bearer token accepted by the private OTLP collector endpoint.')
 param otelReceiverToken string
 @description('Email address that receives Azure Monitor 429 alerts.')
@@ -21,13 +25,8 @@ param rateLimitAlertEmail string = 'pedro@vezza.com.br'
 @description('Azure OpenAI account name.')
 param llmAccountName string = 'cog-hindsight-wu2'
 
-@description('Azure AI Services account name used for reranking.')
-param rerankAccountName string = 'rerank-hindsight-wu2'
 @description('Restore the soft-deleted Azure OpenAI account during recovery.')
 param restoreLlmAccount bool = false
-
-@description('Restore the soft-deleted Azure AI Services account during recovery.')
-param restoreRerankAccount bool = false
 
 @description('Azure OpenAI deployment name for GPT-6-luna.')
 param llmDeploymentName string = 'gpt-6-luna'
@@ -39,11 +38,6 @@ param llmDeploymentCapacity int = 1000
 param embeddingDeploymentName string = 'embedding-3-small'
 @description('GlobalStandard quota units allocated to text-embedding-3-small. Each unit provides 1,000 TPM and 1 request every 10 seconds.')
 param embeddingDeploymentCapacity int = 30
-
-@description('Azure AI Services deployment name for Cohere reranking.')
-param rerankDeploymentName string = 'cohere-rerank-v4-0-pro'
-@description('GlobalStandard quota units allocated to Cohere reranking. Each unit provides 1 request and 1,000 tokens per 60 seconds.')
-param rerankDeploymentCapacity int = 30
 
 @description('App Service plan name.')
 param planName string = 'plan-hindsight-wu2'
@@ -113,11 +107,9 @@ var llmModelName = 'gpt-6-luna'
 var llmModelVersion = '2026-09-22'
 var embeddingModelName = 'text-embedding-3-small'
 var embeddingModelVersion = '1'
-var rerankModelName = 'Cohere-rerank-v4.0-pro'
-var rerankModelVersion = '1'
 var llmBaseUrl = 'https://${llmAccountName}.openai.azure.com/openai/v1'
 var embeddingBaseUrl = 'https://${llmAccountName}.openai.azure.com/openai/deployments/${embeddingDeploymentName}?api-version=2024-10-21'
-var rerankBaseUrl = 'https://${rerankAccountName}.services.ai.azure.com/providers/cohere/v2/rerank'
+var rerankBaseUrl = 'https://api.typesafe.ai'
 var collectorBaseUrl = 'https://${collectorAppName}.azurewebsites.net'
 var virtualNetworkName = 'vnet-hindsight-wu2'
 var appServiceSubnetName = 'snet-appservice'
@@ -620,45 +612,7 @@ resource embeddingDeployment 'Microsoft.CognitiveServices/accounts/deployments@2
   }
 }
 
-resource rerankAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
-  name: rerankAccountName
-  location: location
-  kind: 'AIServices'
-  sku: {
-    name: 'S0'
-  }
-  properties: {
-    customSubDomainName: rerankAccountName
-    disableLocalAuth: false
-    publicNetworkAccess: 'Enabled'
-    restore: restoreRerankAccount
-  }
-  tags: {
-    application: 'hindsight'
-    managedBy: 'bicep'
-    purpose: 'reranker'
-  }
-}
-
-resource rerankDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  parent: rerankAccount
-  name: rerankDeploymentName
-  sku: {
-    name: 'GlobalStandard'
-    capacity: rerankDeploymentCapacity
-  }
-  properties: {
-    model: {
-      format: 'Cohere'
-      name: rerankModelName
-      version: rerankModelVersion
-    }
-    versionUpgradeOption: 'NoAutoUpgrade'
-  }
-}
-
 var llmApiKey = llmAccount.listKeys('2024-10-01').key1
-var rerankApiKey = rerankAccount.listKeys('2024-10-01').key1
 var applicationInsightsConnectionString = applicationInsights.properties.ConnectionString
 var dataCollectionEndpointUrl = dataCollectionEndpoint.properties.logsIngestion.endpoint
 var dataCollectionRuleImmutableId = dataCollectionRule.properties.immutableId
@@ -900,19 +854,19 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'HINDSIGHT_API_RERANKER_PROVIDER'
-          value: 'cohere'
+          value: 'typesafe'
         }
         {
-          name: 'HINDSIGHT_API_RERANKER_COHERE_API_KEY'
-          value: rerankApiKey
+          name: 'HINDSIGHT_API_RERANKER_TYPESAFE_API_KEY'
+          value: typesafeApiKey
         }
         {
-          name: 'HINDSIGHT_API_RERANKER_COHERE_MODEL'
-          value: rerankDeploymentName
+          name: 'HINDSIGHT_API_RERANKER_TYPESAFE_MODEL'
+          value: 'jev-latest'
         }
         {
-          name: 'HINDSIGHT_API_RERANKER_COHERE_BASE_URL'
-          value: rerankBaseUrl
+          name: 'HINDSIGHT_API_RERANKER_TYPESAFE_PRUNE_CANDIDATES'
+          value: 'false'
         }
         {
           name: 'HINDSIGHT_API_TENANT_EXTENSION'
@@ -1023,7 +977,7 @@ resource hindsightAppModelErrorAlert 'Microsoft.Insights/scheduledQueryRules@202
   kind: 'LogAlert'
   properties: {
     displayName: 'Hindsight application model errors'
-    description: 'Alerts when the Hindsight API logs an LLM, embedding, or reranker provider error, excluding the known oversized embedding input validation error.'
+    description: 'Alerts when the Hindsight API logs an Azure OpenAI LLM or embedding error, or a TypeSafe Jev reranker error, excluding HTTP 429 and the known oversized embedding input validation error.'
     severity: 2
     enabled: true
     evaluationFrequency: 'PT5M'
@@ -1046,8 +1000,8 @@ AppServiceConsoleLogs
     Logger = tostring(payload.logger),
     Exception = tostring(payload.exception)
 | where Severity in~ ('ERROR', 'CRITICAL')
-| where Error has_any ('embedding', 'openai', 'cohere', 'llm', 'model')
-    or Exception has_any ('embedding', 'openai', 'cohere', 'llm', 'model')
+| where Error has_any ('embedding', 'openai', 'typesafe', 'jev', 'rerank', 'reranker', 'llm', 'model')
+    or Exception has_any ('embedding', 'openai', 'typesafe', 'jev', 'rerank', 'reranker', 'llm', 'model')
 | where Error !has '429'
 | where isempty(Exception) or Exception !has '429'
 | where not (
@@ -1147,56 +1101,6 @@ resource llmRateLimitAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   }
 }
 
-resource rerankRateLimitAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
-  name: 'alert-hindsight-rerank-429'
-  location: 'global'
-  properties: {
-    description: 'Alerts when an Azure AI Services reranker request returns HTTP 429.'
-    severity: 2
-    enabled: true
-    scopes: [
-      rerankAccount.id
-    ]
-    evaluationFrequency: 'PT1M'
-    windowSize: 'PT5M'
-    autoMitigate: true
-    criteria: {
-      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
-      allOf: [
-        {
-          name: 'RerankModelRequests429'
-          criterionType: 'StaticThresholdCriterion'
-          metricName: 'ModelRequests'
-          metricNamespace: 'Microsoft.CognitiveServices/accounts'
-          operator: 'GreaterThan'
-          threshold: 3
-          timeAggregation: 'Total'
-          skipMetricValidation: false
-          dimensions: [
-            {
-              name: 'StatusCode'
-              operator: 'Include'
-              values: [
-                '429'
-              ]
-            }
-          ]
-        }
-      ]
-    }
-    actions: [
-      {
-        actionGroupId: rateLimitActionGroup.id
-      }
-    ]
-  }
-  tags: {
-    application: 'hindsight'
-    managedBy: 'bicep'
-    purpose: 'rate-limit-alerting'
-  }
-}
-
 resource llmGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'alert-hindsight-llm-errors'
   location: 'global'
@@ -1243,52 +1147,6 @@ resource llmGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   }
 }
 
-resource rerankGenericErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
-  name: 'alert-hindsight-rerank-errors'
-  location: 'global'
-  properties: {
-    description: 'Alerts when an Azure AI Services reranker request returns a non-success status other than HTTP 429.'
-    severity: 2
-    enabled: true
-    scopes: [
-      rerankAccount.id
-    ]
-    evaluationFrequency: 'PT1M'
-    windowSize: 'PT5M'
-    autoMitigate: true
-    criteria: {
-      'odata.type': 'Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria'
-      allOf: [
-        {
-          name: 'RerankGenericModelErrors'
-          criterionType: 'StaticThresholdCriterion'
-          metricName: 'ModelRequests'
-          metricNamespace: 'Microsoft.CognitiveServices/accounts'
-          operator: 'GreaterThan'
-          threshold: 3
-          timeAggregation: 'Total'
-          skipMetricValidation: false
-          dimensions: [
-            {
-              name: 'StatusCode'
-              operator: 'Exclude'
-              values: [
-                '200'
-                '429'
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  }
-  tags: {
-    application: 'hindsight'
-    managedBy: 'bicep'
-    purpose: 'error-alerting'
-  }
-}
-
 output apiUrl string = 'https://${apiHostname}'
 output apiHostname string = apiHostname
 output apiHostnameCnameTarget string = '${appName}.azurewebsites.net'
@@ -1307,7 +1165,5 @@ output hindsightAppDiagnosticsId string = hindsightAppDiagnostics.id
 output collectorAppDiagnosticsId string = collectorAppDiagnostics.id
 output rateLimitActionGroupId string = rateLimitActionGroup.id
 output llmRateLimitAlertId string = llmRateLimitAlert.id
-output rerankRateLimitAlertId string = rerankRateLimitAlert.id
 output llmGenericErrorAlertId string = llmGenericErrorAlert.id
-output rerankGenericErrorAlertId string = rerankGenericErrorAlert.id
 output hindsightAppModelErrorAlertId string = hindsightAppModelErrorAlert.id

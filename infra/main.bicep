@@ -11,8 +11,6 @@ param aiLocation string = 'westus3'
 @description('Restore the soft-deleted Azure OpenAI account during recovery.')
 param restoreLlmAccount bool = false
 
-@description('Restore the soft-deleted Azure AI Services account during recovery.')
-param restoreRerankAccount bool = false
 @description('User-assigned identity used by GitHub Actions for Azure deployments.')
 param deploymentIdentityName string = 'id-hindsight-deploy-wu2'
 
@@ -41,14 +39,16 @@ param apiHostname string = 'hindsight.vza.net'
 param hindsightApiKey string
 
 @secure()
+@description('TypeSafe API key used by the Jev reranker.')
+param typesafeApiKey string
+
+@secure()
 @description('Bearer token accepted by the private OTLP collector endpoint.')
 param otelReceiverToken string
 @description('Email address that receives Azure Monitor 429 alerts.')
 param rateLimitAlertEmail string = 'pedro@vezza.com.br'
 @description('GlobalStandard quota units allocated to text-embedding-3-small.')
 param embeddingDeploymentCapacity int = 30
-@description('GlobalStandard quota units allocated to Cohere reranking.')
-param rerankDeploymentCapacity int = 30
 
 @secure()
 @description('PostgreSQL Flexible Server administrator password.')
@@ -70,14 +70,13 @@ module hindsightResources 'main-rg.bicep' = {
     location: location
     aiLocation: aiLocation
     hindsightApiKey: hindsightApiKey
+    typesafeApiKey: typesafeApiKey
     apiHostname: apiHostname
     otelReceiverToken: otelReceiverToken
     rateLimitAlertEmail: rateLimitAlertEmail
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
-    rerankDeploymentCapacity: rerankDeploymentCapacity
     postgresAdminPassword: postgresAdminPassword
     restoreLlmAccount: restoreLlmAccount
-    restoreRerankAccount: restoreRerankAccount
     deploymentIdentityName: deploymentIdentityName
     otelIdentityName: otelIdentityName
     githubOwner: githubOwner
@@ -107,7 +106,5 @@ output hindsightAppDiagnosticsId string = hindsightResources.outputs.hindsightAp
 output collectorAppDiagnosticsId string = hindsightResources.outputs.collectorAppDiagnosticsId
 output rateLimitActionGroupId string = hindsightResources.outputs.rateLimitActionGroupId
 output llmRateLimitAlertId string = hindsightResources.outputs.llmRateLimitAlertId
-output rerankRateLimitAlertId string = hindsightResources.outputs.rerankRateLimitAlertId
 output llmGenericErrorAlertId string = hindsightResources.outputs.llmGenericErrorAlertId
-output rerankGenericErrorAlertId string = hindsightResources.outputs.rerankGenericErrorAlertId
 output hindsightAppModelErrorAlertId string = hindsightResources.outputs.hindsightAppModelErrorAlertId
