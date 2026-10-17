@@ -27,6 +27,8 @@ docker build \
 
 GitHub Actions builds the patch on pull requests without publishing. Other runs publish `ghcr.io/pedropaulovc/hindsight-api:sha-${GITHUB_SHA}`; only `main` also publishes the `${upstream_tag}-jev-long-context` alias, where `upstream_tag` comes from `infra/Dockerfile`. The image links back to this repository through its OCI source label. Before the first production deployment, publish the image and make the GHCR package **public** so Azure can pull it without adding registry credentials. A feature-branch `workflow_dispatch` builds and publishes without deploying production; only a successful build on `main` permits the production deployment.
 
+Workflow runs serialize per Git ref, so PR checks and branch builds cannot displace a queued production deployment.
+
 The deployment workflow passes the published immutable digest to Bicep. For a manual deployment, both `infra/main.bicep` and `infra/main-rg.bicep` accept an optional `apiImage` parameter. An empty value (the default) derives the public patched tag from the upstream version pin. To select a specific published build, add `apiImage=ghcr.io/pedropaulovc/hindsight-api@sha256:<published-digest>` to the existing deployment parameters, preserving all secure parameters below.
 
 To roll back, deploy a previously working patched digest through `apiImage`. Selecting the plain upstream image removes the header and can restore the original Jev `max_tokens_exceeded` failure; it is not an equivalent rollback of the fix.

@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: hindsight-production
+  group: hindsight-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
