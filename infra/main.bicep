@@ -34,6 +34,9 @@ param githubEnvironment string = 'prod'
 @description('Public custom hostname for the Hindsight API.')
 param apiHostname string = 'hindsight.vza.net'
 
+@description('Full API image reference; empty uses the patched public image matching the upstream Dockerfile version.')
+param apiImage string = ''
+
 @secure()
 @description('API key required by Hindsight clients.')
 param hindsightApiKey string
@@ -72,6 +75,7 @@ module hindsightResources 'main-rg.bicep' = {
     hindsightApiKey: hindsightApiKey
     typesafeApiKey: typesafeApiKey
     apiHostname: apiHostname
+    apiImage: apiImage
     otelReceiverToken: otelReceiverToken
     rateLimitAlertEmail: rateLimitAlertEmail
     embeddingDeploymentCapacity: embeddingDeploymentCapacity

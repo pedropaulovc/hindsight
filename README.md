@@ -6,6 +6,33 @@ Generation uses Azure OpenAI `gpt-6-luna`, version `2026-09-22`, in `westus3`, t
 
 Reranking uses TypeSafe Jev at [https://api.typesafe.ai](https://api.typesafe.ai), with provider `typesafe`, model alias `jev-latest`, and candidate pruning explicitly disabled (`HINDSIGHT_API_RERANKER_TYPESAFE_PRUNE_CANDIDATES=false`). The alias follows TypeSafe's latest Jev release rather than pinning a model version. The API key is supplied through `HINDSIGHT_API_RERANKER_TYPESAFE_API_KEY`; there is no fallback provider.
 
+## Jev long-context image
+
+The pinned upstream Hindsight TypeSafe adapter has no custom-header configuration. To address Jev HTTP 400 `max_tokens_exceeded` errors without changing request grouping, this deployment derives a minimal image from the upstream base and adds `TypeSafe-Danger-Zone-Long-Context: true` to every `TypeSafeCrossEncoder._ask` request. [TypeSafe documents](https://docs.typesafe.ai/models.md#long-context) that the header raises both per-request and per-question limits to 262k tokens at the **same $0.042 per million input tokens**, with output tokens free. Larger contexts can be slower and less accurate; unchanged per-token pricing does not make additional input tokens free.
+
+The build-time patch only merges this header into the existing bank-attribution headers; session authentication and all other source remain unchanged. Hindsight's existing 26,000-token grouping and 250-option limit remain unchanged, as do `jev-latest` and candidate pruning disabled. There are no new adaptive retries, fallback providers, or truncation changes.
+
+`infra/Dockerfile` remains the single-line upstream version pin tracked by Dependabot. `infra/jev-long-context.Dockerfile` accepts that image as `BASE_IMAGE`, runs the standard-library patch script as the existing `hindsight` user, and installs no dependencies. The build fails if the expected TypeSafe class, async `_ask` method, or single headers expression changes; review the upstream adapter before updating the patch.
+
+To build the currently pinned version locally from the repository root:
+
+```bash
+read -r _ BASE_IMAGE _ < infra/Dockerfile
+docker build \
+  --file infra/jev-long-context.Dockerfile \
+  --build-arg BASE_IMAGE="$BASE_IMAGE" \
+  --tag "ghcr.io/pedropaulovc/hindsight-api:${BASE_IMAGE##*:}-jev-long-context" \
+  .
+```
+
+GitHub Actions builds the patch on pull requests without publishing. Other runs publish `ghcr.io/pedropaulovc/hindsight-api:sha-${GITHUB_SHA}`; only `main` also publishes the `${upstream_tag}-jev-long-context` alias, where `upstream_tag` comes from `infra/Dockerfile`. The image links back to this repository through its OCI source label. Before the first production deployment, publish the image and make the GHCR package **public** so Azure can pull it without adding registry credentials. A feature-branch `workflow_dispatch` builds and publishes without deploying production; only a successful build on `main` permits the production deployment.
+
+Workflow runs serialize per Git ref, so PR checks and branch builds cannot displace a queued production deployment.
+
+The deployment workflow passes the published immutable digest to Bicep. For a manual deployment, both `infra/main.bicep` and `infra/main-rg.bicep` accept an optional `apiImage` parameter. An empty value (the default) derives the public patched tag from the upstream version pin. To select a specific published build, add `apiImage=ghcr.io/pedropaulovc/hindsight-api@sha256:<published-digest>` to the existing deployment parameters, preserving all secure parameters below.
+
+To roll back, deploy a previously working patched digest through `apiImage`. Selecting the plain upstream image removes the header and can restore the original Jev `max_tokens_exceeded` failure; it is not an equivalent rollback of the fix.
+
 ## Deploy infrastructure
 
 The GitHub Actions deployment uses the `prod` environment. Configure its `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` secrets for workload identity, and these application secrets:
