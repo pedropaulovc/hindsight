@@ -977,7 +977,7 @@ resource hindsightAppModelErrorAlert 'Microsoft.Insights/scheduledQueryRules@202
   kind: 'LogAlert'
   properties: {
     displayName: 'Hindsight application model errors'
-    description: 'Alerts when the Hindsight API logs an Azure OpenAI LLM or embedding error, or a TypeSafe Jev reranker error, excluding HTTP 429 and the known oversized embedding input validation error.'
+    description: 'Alerts when the Hindsight API logs an Azure OpenAI LLM or embedding error, or a TypeSafe Jev reranker error including HTTP 429, excluding Azure OpenAI HTTP 429 and the known oversized embedding input validation error.'
     severity: 2
     enabled: true
     evaluationFrequency: 'PT5M'
@@ -1002,8 +1002,8 @@ AppServiceConsoleLogs
 | where Severity in~ ('ERROR', 'CRITICAL')
 | where Error has_any ('embedding', 'openai', 'typesafe', 'jev', 'rerank', 'reranker', 'llm', 'model')
     or Exception has_any ('embedding', 'openai', 'typesafe', 'jev', 'rerank', 'reranker', 'llm', 'model')
-| where Error !has '429'
-| where isempty(Exception) or Exception !has '429'
+| where (Error !has '429' and (isempty(Exception) or Exception !has '429'))
+    or Error has_any ('typesafe', 'jev') or Exception has_any ('typesafe', 'jev')
 | where not (
     (Error contains 'Failed to generate batch embeddings' or Exception contains 'Failed to generate batch embeddings')
     and (Error contains 'maximum input length is 8192 tokens' or Exception contains 'maximum input length is 8192 tokens')

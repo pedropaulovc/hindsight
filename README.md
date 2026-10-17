@@ -38,9 +38,9 @@ az deployment sub create \
 
 Routine deployments use `az deployment group create --resource-group rg-hindsight-wu2 --template-file infra/main-rg.bicep` with the same four secure parameters. The `rerankEndpoint` output identifies the external TypeSafe endpoint; no Azure reranker account or model deployment is provisioned.
 
-Deployments are incremental. Removing the former Cohere account, deployment, and reranker-specific metric alerts from Bicep does **not** delete existing Azure resources. Retire those resources explicitly after verifying the Jev cutover; do not switch this deployment to complete mode or delete unrelated resources.
+Deployments are incremental. Removing the former Cohere account, deployment, and reranker-specific metric alerts from Bicep does **not** delete existing Azure resources. Those resources remain unused after the Jev cutover and can be retired separately; do not switch this deployment to complete mode or delete unrelated resources.
 
-Azure OpenAI metric alerts remain in place for HTTP 429 and other model errors. The general Hindsight application model-error alert also covers TypeSafe Jev reranker errors reported in application logs. It retains its existing exclusions for HTTP 429 and oversized embedding inputs; there is no TypeSafe-specific Azure metric alert.
+Azure OpenAI metric alerts remain in place for HTTP 429 and other model errors. The general Hindsight application model-error alert covers TypeSafe Jev reranker errors, including exhausted HTTP 429 retries, reported in application logs. Azure OpenAI HTTP 429 and oversized embedding inputs remain excluded from this log alert; there is no TypeSafe-specific Azure metric alert.
 
 ## Open the Control Plane
 
