@@ -38,11 +38,13 @@ jobs:
         uses: azure/cli@9f7ce6f37c31b777ec6c6b6d1dfe7db79f497956 # v2.2.0
         env:
           HINDSIGHT_API_KEY: ${{ secrets.HINDSIGHT_API_KEY }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           OTEL_RECEIVER_TOKEN: ${{ secrets.OTEL_RECEIVER_TOKEN }}
           POSTGRES_ADMIN_PASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
         with:
           inlineScript: |
             set -eu
+            : "${TYPESAFE_API_KEY:?TYPESAFE_API_KEY must be set in the prod environment}"
             # main.bicep provisions the subscription and resource group once.
             # This scoped update keeps the workload identity limited to that group.
             az deployment group create \
@@ -50,6 +52,7 @@ jobs:
               --template-file infra/main-rg.bicep \
               --parameters \
                 hindsightApiKey="$HINDSIGHT_API_KEY" \
+                typesafeApiKey="$TYPESAFE_API_KEY" \
                 otelReceiverToken="$OTEL_RECEIVER_TOKEN" \
                 postgresAdminPassword="$POSTGRES_ADMIN_PASSWORD"
 
