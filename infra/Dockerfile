@@ -1,4 +1,4 @@
-FROM ghcr.io/vectorize-io/hindsight-api:0.10.3-slim
+FROM ghcr.io/vectorize-io/hindsight-api:1.0.0-slim
 
 LABEL org.opencontainers.image.source="https://github.com/pedropaulovc/hindsight"
 
