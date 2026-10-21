@@ -8,9 +8,9 @@ Reranking uses TypeSafe Jev at [https://api.typesafe.ai](https://api.typesafe.ai
 
 ## API image and deployment validation
 
-The API uses the stock `ghcr.io/vectorize-io/hindsight-api:1.0.0-slim` image. `infra/Dockerfile` contains only the literal `FROM` pin tracked by Dependabot; Bicep reads that first line and deploys the official image directly.
+The API runs the official Hindsight slim image without local source patches or a custom image build. `infra/Dockerfile` is the version pin tracked by Dependabot; Bicep reads its literal `FROM` line and deploys that image directly.
 
-Upstream's [adaptive-retry fix #5794](https://github.com/vectorize-io/hindsight/pull/5794) is accepted but is not included in this pinned release. The known Jev `max_tokens_exceeded` recall failure can recur until a release containing the fix is deployed. The TypeSafe provider, `jev-latest` alias, and disabled candidate pruning remain unchanged.
+In `1.0.0-slim`, Jev can reject oversized or mixed-script requests with `max_tokens_exceeded`. Upstream [#5794](https://github.com/vectorize-io/hindsight/pull/5794) adds adaptive retries, but is not included in that release. [Issue #23](https://github.com/pedropaulovc/hindsight/issues/23) records the completed stock-image cutover and production verification.
 
 GitHub Actions validates both Bicep entrypoints with `az bicep build --stdout` on pull requests, pushes to `main`, and manual runs, without requiring Azure credentials or application secrets for validation. Production deployment runs only on `main` after validation succeeds and uses the pinned stock image.
 
