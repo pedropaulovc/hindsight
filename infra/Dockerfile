@@ -1,1 +1,1 @@
-FROM ghcr.io/vectorize-io/hindsight-api:1.0.0-slim
+FROM ghcr.io/vectorize-io/hindsight-api:1.1.0-slim
