@@ -10,7 +10,7 @@ Reranking uses TypeSafe Jev at [https://api.typesafe.ai](https://api.typesafe.ai
 
 The API runs the official Hindsight slim image without local source patches or a custom image build. `infra/Dockerfile` is the version pin tracked by Dependabot; Bicep reads its literal `FROM` line and deploys that image directly.
 
-The API is pinned to `1.1.0-slim`, which includes upstream [#5794](https://github.com/vectorize-io/hindsight/pull/5794): adaptive retries with smaller request budgets when Jev returns `max_tokens_exceeded`. Retries are bounded, so oversized requests can still fail; this is not long-context mode. [Issue #23](https://github.com/pedropaulovc/hindsight/issues/23) records the earlier stock-image cutover and production verification.
+The API is pinned to `1.3.0-slim`, which includes upstream [#5794](https://github.com/vectorize-io/hindsight/pull/5794): adaptive retries with smaller request budgets when Jev returns `max_tokens_exceeded`. Retries are bounded, so oversized requests can still fail; this is not long-context mode. [Issue #23](https://github.com/pedropaulovc/hindsight/issues/23) records the earlier stock-image cutover and production verification.
 
 GitHub Actions validates both Bicep entrypoints with `az bicep build --stdout` on pull requests, pushes to `main`, and manual runs, without requiring Azure credentials or application secrets for validation. Production deployment runs only on `main` after validation succeeds and uses the pinned stock image.
 
@@ -80,7 +80,7 @@ To protect the local UI with a separate access key:
 HINDSIGHT_CP_ACCESS_KEY='your-control-plane-key' ./scripts/start-control-plane.sh
 ```
 
-The launcher uses `@vectorize-io/hindsight-control-plane@0.10.2`. It resolves the package before loading either key. Set `HINDSIGHT_CP_HOSTNAME` or `HINDSIGHT_CP_PORT` to override its local bind address or port.
+The launcher uses `@vectorize-io/hindsight-control-plane@1.3.0`. It resolves the package before loading either key. Set `HINDSIGHT_CP_HOSTNAME` or `HINDSIGHT_CP_PORT` to override its local bind address or port.
 
 The deployed API endpoint is [https://hindsight.vza.net](https://hindsight.vza.net). The Azure App Service origin remains `app-hindsight-wu2.azurewebsites.net`. It does not host a public Control Plane page; a hosted UI would require a separate Control Plane service.
 
