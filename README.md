@@ -4,7 +4,7 @@ This repository provisions the Hindsight API and its Azure dependencies.
 
 Generation uses Azure OpenAI `gpt-6-luna`, version `2026-09-22`, in `westus3`, through the Responses API with medium reasoning effort. The `GlobalStandard` deployment has 1,000 quota units (1,000,000 TPM and 1,000 RPM). Azure model versions are pinned in `infra/main-rg.bicep`; automatic upgrades are disabled.
 
-Reranking uses TypeSafe Jev at [https://api.typesafe.ai](https://api.typesafe.ai), with provider `typesafe`, model alias `jev-latest`, and candidate pruning explicitly disabled (`HINDSIGHT_API_RERANKER_TYPESAFE_PRUNE_CANDIDATES=false`). The alias follows TypeSafe's latest Jev release rather than pinning a model version. The API key is supplied through `HINDSIGHT_API_RERANKER_TYPESAFE_API_KEY`; there is no fallback provider.
+Decision-making and recall ranking use TypeSafe Jev at [https://api.typesafe.ai](https://api.typesafe.ai) through the shared decision model (`HINDSIGHT_API_DECISION_MODEL_PROVIDER=typesafe`, model alias `jev-latest`), covering recall ranking, consolidation triage, reflect orchestration, and mental-model page refreshes, with recall candidate pruning explicitly disabled (`HINDSIGHT_API_RECALL_DECISION_MODEL_PRUNE=false`). The alias follows TypeSafe's latest Jev release rather than pinning a model version. The API key is supplied through `HINDSIGHT_API_DECISION_MODEL_API_KEY`; there is no fallback reranker.
 
 ## API image and deployment validation
 
@@ -23,7 +23,7 @@ The GitHub Actions deployment uses the `prod` environment. Configure its `AZURE_
 | Secret | Purpose |
 | --- | --- |
 | `HINDSIGHT_API_KEY` | Authentication for Hindsight API clients |
-| `TYPESAFE_API_KEY` | Authentication for the TypeSafe Jev reranker |
+| `TYPESAFE_API_KEY` | Authentication for the TypeSafe Jev decision model |
 | `OTEL_RECEIVER_TOKEN` | Authentication for the private OTLP collector |
 | `POSTGRES_ADMIN_PASSWORD` | PostgreSQL administrator password |
 
@@ -46,11 +46,11 @@ az deployment sub create \
     postgresAdminPassword="$POSTGRES_ADMIN_PASSWORD"
 ```
 
-Routine deployments use `az deployment group create --resource-group rg-hindsight-wu2 --template-file infra/main-rg.bicep` with the same four secure parameters. The `rerankEndpoint` output identifies the external TypeSafe endpoint; no Azure reranker account or model deployment is provisioned.
+Routine deployments use `az deployment group create --resource-group rg-hindsight-wu2 --template-file infra/main-rg.bicep` with the same four secure parameters. The `decisionModelEndpoint` output identifies the external TypeSafe endpoint; no Azure reranker account or model deployment is provisioned.
 
 Deployments are incremental. Removing the former Cohere account, deployment, and reranker-specific metric alerts from Bicep does **not** delete existing Azure resources. Those resources remain unused after the Jev cutover and can be retired separately; do not switch this deployment to complete mode or delete unrelated resources.
 
-Azure OpenAI metric alerts remain in place for HTTP 429 and other model errors. The general Hindsight application model-error alert covers TypeSafe Jev reranker errors, including exhausted HTTP 429 retries, reported in application logs. Azure OpenAI HTTP 429 and oversized embedding inputs remain excluded from this log alert; there is no TypeSafe-specific Azure metric alert.
+Azure OpenAI metric alerts remain in place for HTTP 429 and other model errors. The general Hindsight application model-error alert covers TypeSafe Jev decision model errors, including exhausted HTTP 429 retries, reported in application logs. Azure OpenAI HTTP 429 and oversized embedding inputs remain excluded from this log alert; there is no TypeSafe-specific Azure metric alert.
 
 ## Open the Control Plane
 

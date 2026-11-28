@@ -39,7 +39,7 @@ param apiHostname string = 'hindsight.vza.net'
 param hindsightApiKey string
 
 @secure()
-@description('TypeSafe API key used by the Jev reranker.')
+@description('TypeSafe API key used by the Jev decision model.')
 param typesafeApiKey string
 
 @secure()
@@ -99,7 +99,7 @@ output dataCollectionEndpointId string = hindsightResources.outputs.dataCollecti
 output dataCollectionEndpoint string = hindsightResources.outputs.dataCollectionEndpoint
 output dataCollectionRuleImmutableId string = hindsightResources.outputs.dataCollectionRuleImmutableId
 output llmEndpoint string = hindsightResources.outputs.llmEndpoint
-output rerankEndpoint string = hindsightResources.outputs.rerankEndpoint
+output decisionModelEndpoint string = hindsightResources.outputs.decisionModelEndpoint
 output embeddingEndpoint string = hindsightResources.outputs.embeddingEndpoint
 output postgresServerFqdn string = hindsightResources.outputs.postgresServerFqdn
 output hindsightAppDiagnosticsId string = hindsightResources.outputs.hindsightAppDiagnosticsId
