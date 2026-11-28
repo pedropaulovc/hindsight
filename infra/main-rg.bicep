@@ -12,7 +12,7 @@ param aiLocation string = 'westus3'
 param hindsightApiKey string
 
 @secure()
-@description('TypeSafe API key used by the Jev reranker.')
+@description('TypeSafe API key used by the Jev decision model.')
 param typesafeApiKey string
 
 @secure()
@@ -109,7 +109,7 @@ var embeddingModelName = 'text-embedding-3-small'
 var embeddingModelVersion = '1'
 var llmBaseUrl = 'https://${llmAccountName}.openai.azure.com/openai/v1'
 var embeddingBaseUrl = 'https://${llmAccountName}.openai.azure.com/openai/deployments/${embeddingDeploymentName}?api-version=2024-10-21'
-var rerankBaseUrl = 'https://api.typesafe.ai'
+var decisionModelBaseUrl = 'https://api.typesafe.ai'
 var collectorBaseUrl = 'https://${collectorAppName}.azurewebsites.net'
 var virtualNetworkName = 'vnet-hindsight-wu2'
 var appServiceSubnetName = 'snet-appservice'
@@ -853,19 +853,19 @@ resource hindsightApp 'Microsoft.Web/sites@2023-12-01' = {
           value: embeddingBaseUrl
         }
         {
-          name: 'HINDSIGHT_API_RERANKER_PROVIDER'
+          name: 'HINDSIGHT_API_DECISION_MODEL_PROVIDER'
           value: 'typesafe'
         }
         {
-          name: 'HINDSIGHT_API_RERANKER_TYPESAFE_API_KEY'
+          name: 'HINDSIGHT_API_DECISION_MODEL_API_KEY'
           value: typesafeApiKey
         }
         {
-          name: 'HINDSIGHT_API_RERANKER_TYPESAFE_MODEL'
+          name: 'HINDSIGHT_API_DECISION_MODEL_MODEL'
           value: 'jev-latest'
         }
         {
-          name: 'HINDSIGHT_API_RERANKER_TYPESAFE_PRUNE_CANDIDATES'
+          name: 'HINDSIGHT_API_RECALL_DECISION_MODEL_PRUNE'
           value: 'false'
         }
         {
@@ -977,7 +977,7 @@ resource hindsightAppModelErrorAlert 'Microsoft.Insights/scheduledQueryRules@202
   kind: 'LogAlert'
   properties: {
     displayName: 'Hindsight application model errors'
-    description: 'Alerts when the Hindsight API logs an Azure OpenAI LLM or embedding error, or a TypeSafe Jev reranker error including HTTP 429, excluding Azure OpenAI HTTP 429 and the known oversized embedding input validation error.'
+    description: 'Alerts when the Hindsight API logs an Azure OpenAI LLM or embedding error, or a TypeSafe Jev decision model error including HTTP 429, excluding Azure OpenAI HTTP 429 and the known oversized embedding input validation error.'
     severity: 2
     enabled: true
     evaluationFrequency: 'PT5M'
@@ -1000,10 +1000,13 @@ AppServiceConsoleLogs
     Logger = tostring(payload.logger),
     Exception = tostring(payload.exception)
 | where Severity in~ ('ERROR', 'CRITICAL')
-| where Error has_any ('embedding', 'openai', 'typesafe', 'jev', 'rerank', 'reranker', 'llm', 'model')
-    or Exception has_any ('embedding', 'openai', 'typesafe', 'jev', 'rerank', 'reranker', 'llm', 'model')
+| where Error has_any ('embedding', 'openai', 'typesafe', 'jev', 'decision_model', 'rerank', 'reranker', 'llm', 'model')
+    or Exception has_any ('embedding', 'openai', 'typesafe', 'jev', 'decision_model', 'rerank', 'reranker', 'llm', 'model')
+    or Logger has_any ('decision_model', 'decision_reranker')
 | where (Error !has '429' and (isempty(Exception) or Exception !has '429'))
-    or Error has_any ('typesafe', 'jev') or Exception has_any ('typesafe', 'jev')
+    or Error has_any ('typesafe', 'jev', 'decision_model')
+    or Exception has_any ('typesafe', 'jev', 'decision_model')
+    or Logger has_any ('decision_model', 'decision_reranker')
 | where not (
     (Error contains 'Failed to generate batch embeddings' or Exception contains 'Failed to generate batch embeddings')
     and (Error contains 'maximum input length is 8192 tokens' or Exception contains 'maximum input length is 8192 tokens')
@@ -1158,7 +1161,7 @@ output dataCollectionEndpointId string = dataCollectionEndpoint.id
 output dataCollectionEndpoint string = dataCollectionEndpointUrl
 output dataCollectionRuleImmutableId string = dataCollectionRuleImmutableId
 output llmEndpoint string = llmBaseUrl
-output rerankEndpoint string = rerankBaseUrl
+output decisionModelEndpoint string = decisionModelBaseUrl
 output embeddingEndpoint string = embeddingBaseUrl
 output postgresServerFqdn string = postgresServerFqdn
 output hindsightAppDiagnosticsId string = hindsightAppDiagnostics.id
